@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="font">
+   <font>
+    <family>Small Fonts</family>
+    <pointsize>8</pointsize>
+    <bold>true</bold>
+   </font>
+  </property>
+  <property name="windowTitle">
+   <string>Deplieur</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_2">
+       <layout class="QVBoxLayout" name="verticalLayoutCouleurs">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="sizeConstraint">
+         <enum>QLayout::SizeConstraint::SetMinAndMaxSize</enum>
+        </property>
+        <item>
+         <widget class="QTableWidget" name="tableCouleurs">
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>Small Fonts</family>
+            <pointsize>8</pointsize>
+            <bold>false</bold>
+           </font>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::FocusPolicy::NoFocus</enum>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Shape::WinPanel</enum>
+          </property>
+          <property name="autoScroll">
+           <bool>false</bool>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::DoubleClicked</set>
+          </property>
+          <property name="tabKeyNavigation">
+           <bool>false</bool>
+          </property>
+          <property name="showDropIndicator" stdset="0">
+           <bool>false</bool>
+          </property>
+          <property name="dragDropOverwriteMode">
+           <bool>false</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+          <property name="columnCount">
+           <number>3</number>
+          </property>
+          <attribute name="horizontalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderHighlightSections">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="verticalHeaderHighlightSections">
+           <bool>false</bool>
+          </attribute>
+          <column/>
+          <column/>
+          <column/>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="verticalLayoutWidget">
+       <layout class="QVBoxLayout" name="verticalLayout3D">
+        <item>
+         <widget class="QGraphicsView" name="vue3d">
+          <property name="font">
+           <font>
+            <family>Small Fonts</family>
+            <pointsize>8</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Shape::WinPanel</enum>
+          </property>
+          <property name="dragMode">
+           <enum>QGraphicsView::DragMode::RubberBandDrag</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="verticalLayoutWidget_3">
+       <layout class="QVBoxLayout" name="verticalLayout2D">
+        <item>
+         <widget class="QGraphicsView" name="vue2d">
+          <property name="frameShape">
+           <enum>QFrame::Shape::WinPanel</enum>
+          </property>
+          <property name="dragMode">
+           <enum>QGraphicsView::DragMode::RubberBandDrag</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>LeftToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionNouveau"/>
+   <addaction name="actionOuvrir"/>
+   <addaction name="actionSauver"/>
+   <addaction name="actionExporter"/>
+   <addaction name="actionQuitter"/>
+  </widget>
+  <action name="actionNouveau">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/note_add.png</normaloff>:/resources/note_add.png</iconset>
+   </property>
+   <property name="text">
+    <string>Nouveau</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Small Fonts</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionOuvrir">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/file_open.png</normaloff>:/resources/file_open.png</iconset>
+   </property>
+   <property name="text">
+    <string>Ouvrir</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Small Fonts</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionSauver">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/file_save.png</normaloff>:/resources/file_save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Sauver</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Small Fonts</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionExporter">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/file_export.png</normaloff>:/resources/file_export.png</iconset>
+   </property>
+   <property name="text">
+    <string>Exporter</string>
+   </property>
+   <property name="toolTip">
+    <string>Exporter SVG</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Small Fonts</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+   <property name="shortcut">
+    <string>X</string>
+   </property>
+  </action>
+  <action name="actionQuitter">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/close.png</normaloff>:/resources/close.png</iconset>
+   </property>
+   <property name="text">
+    <string>Quitter</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Small Fonts</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+  </action>
+  <action name="actionXG">
+   <property name="text">
+    <string>&lt;</string>
+   </property>
+   <property name="shortcut">
+    <string>W</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionXD">
+   <property name="text">
+    <string>&gt;</string>
+   </property>
+   <property name="shortcut">
+    <string>C</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionYG">
+   <property name="text">
+    <string>&lt;</string>
+   </property>
+   <property name="shortcut">
+    <string>T</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionYD">
+   <property name="text">
+    <string>&gt;</string>
+   </property>
+   <property name="shortcut">
+    <string>U</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionZG">
+   <property name="text">
+    <string>&lt;</string>
+   </property>
+   <property name="shortcut">
+    <string>A</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionZD">
+   <property name="text">
+    <string>&gt;</string>
+   </property>
+   <property name="shortcut">
+    <string>E</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionZoomMoins">
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="shortcut">
+    <string>Q</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionZoomPlus">
+   <property name="text">
+    <string>+</string>
+   </property>
+   <property name="shortcut">
+    <string>S</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionCouleurPlus">
+   <property name="text">
+    <string>+</string>
+   </property>
+   <property name="toolTip">
+    <string>Ajouter Couleur</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionCouleurMoins">
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="toolTip">
+    <string>Supprimer Couleur</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionCouleurAssembler">
+   <property name="text">
+    <string>*</string>
+   </property>
+   <property name="toolTip">
+    <string>Assembler</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="action2DZoomPlus">
+   <property name="text">
+    <string>+</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="action2DZoomMoins">
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
