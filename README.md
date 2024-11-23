@@ -4,7 +4,7 @@ Déplie un volume en sélectionnant des pièces par coloration des faces grâce 
 C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
 (kit Desktop MingGW Qt 6.8.0 ou Desktop MSVC Qt 6.8.0, ou  WebAssembly Qt 6.8.0)
 
-# (22-11.24)
+# (23-11.24)
 ## FAIT
 - Crer un nouveau projet de dépliage (ouvrir un fichier 3D, format .obj)
 - Afficher le modèle 3D, le gabarit 2D multipage par défaut
@@ -17,16 +17,16 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
 - Ajouter/Supprimer des couleurs (1 couleur = 1 ou plusieurs pièces)
 - Renommer les couleurs
 - Appliquer une couleur à une sélection de faces
+- Centrer le modèle 3d dans la vue
+- Attacher les faces d'une pièce
 
 ## A FAIRE
-- Attacher les faces d'une pièce
 - Déplacer les pièces d'une page à une autre
 - Tourner les faces/pièces
 - Couper/attacher des faces/pièces
 - Sauver/Charger un projet
 - Exporter le gabarit en SVG (peut-être aussi en PDF)
 - Voir/modifier les dimensions du projet
-- Centrer le modèle 3d dans le vue
 - Changer les paramètres de (mise en) page du projet(format, orientation, marges)
 - (peut-être) Sélectionner toutes les faces d'une couleur
 
