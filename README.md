@@ -4,7 +4,7 @@ Déplie un volume en sélectionnant des pièces par coloration des faces grâce 
 C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
 (kit Desktop MingGW Qt 6.8.0 ou Desktop MSVC Qt 6.8.0, ou  WebAssembly Qt 6.8.0)
 
-# (23-11.24)
+# (24-11.24)
 ## FAIT
 - Crer un nouveau projet de dépliage (ouvrir un fichier 3D, format .obj)
 - Afficher le modèle 3D, le gabarit 2D multipage par défaut
@@ -19,10 +19,10 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
 - Appliquer une couleur à une sélection de faces
 - Centrer le modèle 3d dans la vue
 - Attacher les faces d'une pièce
+- Tourner les faces/pièces
 
 ## A FAIRE
 - Déplacer les pièces d'une page à une autre
-- Tourner les faces/pièces
 - Couper/attacher des faces/pièces
 - Sauver/Charger un projet
 - Exporter le gabarit en SVG (peut-être aussi en PDF)
@@ -36,11 +36,16 @@ https://gilboonet.github.io/deplieur2/Deplieur.html
 
 ## Raccourcis clavier (AZERTY)
 
-- rotation du modèle 3D
+Rotation (modèle 3D)
 - Axe X axis avec "W" et "C" (Touches avant et après le "X")
 - Axe Y axis avec "T" et "U" (Touches avant et après le "Y")
 - Axe Z axis avec "A" et "E" (Touches avant et après le "Z")
-- Dézoomer avec "Q", zoomer avec "S"
+
+Dézoomer avec "Q", zoomer avec "S" (modèle 3D)
+
+Rotation (gabarit 2D, pièce/face sélectionnée)
+- Tourner vers la gauche avec "/" (pavé numérique)
+- Tourner vers la droite avec "*" (pavé numérique)
 
 ## Problèmes WebAssembly rencontrés
 - Appuyer sur "TAB" si un raccourci clavier ne répond pas (généralement après avoir ajouté une couleur)
