@@ -3,10 +3,12 @@
 
 #include <QTableWidget>
 #include <QGraphicsScene>
+#include <QGraphicsLineItem>
 #include <QFileDialog>
 #include <QToolBar>
 #include <QColorDialog>
 #include <QLabel>
+#include <QTransform>
 
 #include <QDebug>
 
@@ -18,6 +20,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     dep = nullptr;
 
     // Menu principal
+    QToolBar *tbMain = new QToolBar(this);
+    tbMain->addAction(ui->actionNouveau);
+    tbMain->addAction(ui->actionOuvrir);
+    tbMain->addAction(ui->actionSauver);
+    tbMain->addAction(ui->actionExporter);
+    tbMain->addAction(ui->actionQuitter);
+    tbMain->setOrientation(Qt::Vertical);
+    tbMain->setMaximumWidth(25);
+    ui->verticalLayoutMenu->addWidget(tbMain);
+
     connect(ui->actionNouveau, &QAction::triggered, this, &MainWindow::nouveau);
     connect(ui->actionQuitter, &QAction::triggered, this, &MainWindow::quitter);
 
@@ -64,7 +76,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb3d->addAction(ui->actionXG);
     connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
 
-    tb3d->addWidget(new QLabel("x"));
+    tb3d->addWidget(new QLabel("X"));
 
     tb3d->addAction(ui->actionXD);
     connect(ui->actionXD, &QAction::triggered, this, &MainWindow::tourner3DXD);
@@ -74,7 +86,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb3d->addAction(ui->actionYG);
     connect(ui->actionYG, &QAction::triggered, this, &MainWindow::tourner3DYG);
 
-    tb3d->addWidget(new QLabel("y"));
+    tb3d->addWidget(new QLabel("Y"));
 
     tb3d->addAction(ui->actionYD);
     connect(ui->actionYD, &QAction::triggered, this, &MainWindow::tourner3DYD);
@@ -84,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb3d->addAction(ui->actionZG);
     connect(ui->actionZG, &QAction::triggered, this, &MainWindow::tourner3DZG);
 
-    tb3d->addWidget(new QLabel("y"));
+    tb3d->addWidget(new QLabel("Z"));
 
     tb3d->addAction(ui->actionZD);
     connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
@@ -94,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb3d->addAction(ui->actionZoomMoins);
     connect(ui->actionZoomMoins, &QAction::triggered, this, &MainWindow::zoom3DMoins);
 
-    tb3d->addWidget(new QLabel("ech"));
+    tb3d->addWidget(new QLabel("Zoom."));
 
     tb3d->addAction(ui->actionZoomPlus);
     connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
@@ -107,10 +119,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb2d->addAction(ui->action2DZoomMoins);
     connect(ui->action2DZoomMoins, &QAction::triggered, this, &MainWindow::zoom2DMoins);
 
-    tb2d->addWidget(new QLabel("ech"));
+    tb2d->addWidget(new QLabel("Zoom"));
 
     tb2d->addAction(ui->action2DZoomPlus);
     connect(ui->action2DZoomPlus, &QAction::triggered, this, &MainWindow::zoom2DPlus);
+
+    tb2d->addSeparator();
+    tb2d->addAction(ui->action2DRotMoins);
+    connect(ui->action2DRotMoins, &QAction::triggered, this, &MainWindow::Rot2DMoins);
+
+    tb2d->addWidget(new QLabel("Rot."));
+
+    tb2d->addAction(ui->action2DRotPlus);
+    connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
 
     ui->verticalLayout2D->setMenuBar(tb2d);
 }
@@ -140,6 +161,8 @@ void MainWindow::nouveau()
         if (!fileName.isEmpty()) {
             // Use fileName and fileContent
             dep = new Depliage(this);
+            dep->scene3d->twC = ui->tableCouleurs;
+            dep->scene2d->twC = ui->tableCouleurs;
             ui->vue3d->setScene(dep->scene3d);
             ui->vue2d->setScene(dep->scene2d);
             QFileInfo f(fileName);
@@ -162,6 +185,9 @@ void MainWindow::nouveau()
             dep->trouveVoisinage();
             ui->vue3d->fitInView(dep->scene3d->itemsBoundingRect(), Qt::KeepAspectRatio);
             dep->basculeSelectionChanged(true);
+
+            vec3d d = dep->meshModel->dim.Vector_Mul(50);
+            ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
         }
     };
     QFileDialog::getOpenFileContent("fichier OBJ (*.obj)",  fileContentReady);
@@ -190,14 +216,22 @@ void MainWindow::AfficheNbSel(QGraphicsScene *scene)
     int nbSel = scene->selectedItems().size();
     if (nbSel == 0) {
         statusBar()->showMessage("Aucune selection");
-    }
-    else if (nbSel < 5) {
+    } else if (nbSel == 1) {
+        QList<QGraphicsItem*> si = scene->selectedItems();
+        int nf = si[0]->data(0).toInt();
+        facette *f = &(dep->meshModel->faces[nf]);
+
+        statusBar()->showMessage( QString("face %1 : v1 (%2,%3) v2(%4,%5) v3(%6,%7)").arg(nf)
+            .arg(f->voisins[0].nF).arg(f->voisins[0].pnF)
+            .arg(f->voisins[1].nF).arg(f->voisins[1].pnF)
+            .arg(f->voisins[2].nF).arg(f->voisins[2].pnF)
+        );
+    } else if (nbSel < 5) {
         QStringList si;
         for(auto && i : scene->selectedItems())
             si.append(i->data(0).toString());
         statusBar()->showMessage("faces: " + si.join(","));
-    }
-    else {
+    } else {
         statusBar()->showMessage(QString("%1 faces").arg(nbSel));
     }
 }
@@ -212,13 +246,16 @@ void MainWindow::SelectionDansScene2D()
         for(auto && j : dep->scene3d->items()) {
             int nj = j->data(0).toInt();
             if (ni == nj) {
-                //auto v = dep->meshModel->faces[ni].voisins;
-                //qDebug() << "sel2D : " << ni << " - " << nj << " (" << v[0].nF << ", " << v[1].nF << ", " << v[2].nF << ")";
                 j->setSelected(true);
             }
         }
     }
     dep->basculeSelectionChanged(true);
+}
+
+void MainWindow::changeCouleur()
+{
+
 }
 
 void MainWindow::couleurChoisie (QColor color)
@@ -244,11 +281,14 @@ void MainWindow::couleurChoisie (QColor color)
         QTableWidgetItem *tiT = new QTableWidgetItem(s);
         ui->tableCouleurs->setItem(nb, 2, tiT);
         ui->tableCouleurs->selectRow(nb);
+        couleurClic(nb, 0);
     }
 }
 
 void MainWindow::couleurNouveau()
 {
+    if(!dep)
+        return;
     QColorDialog *dialog = new QColorDialog();
     dialog->setOption(QColorDialog::NoEyeDropperButton);
     connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
@@ -257,9 +297,11 @@ void MainWindow::couleurNouveau()
 
 void MainWindow::couleurSupprime()
 {
+    if(!dep)
+        return;
     int n = ui->tableCouleurs->currentRow();
 
-    if (n == 0) {
+    if (n < 1) {
         return;
     }
 
@@ -288,34 +330,137 @@ void MainWindow::couleurSupprime()
     dep->scene2d->update();
 }
 
+void MainWindow::commencePose(QList<int>*pool, int n)
+{
+    Piece att;
+    att.attaches.push_back(Attache(-1, pool->takeFirst()));
+    dep->pool[n].pieces.push_back(att);
+    int nF = att.attaches[0].vers;
+
+    TriangleItem *TI = dep->t2d[nF];
+    TI->estLie = false;
+    TI->estPrem = true;
+    TI->setFlag(QGraphicsItem::ItemIsMovable);
+    TI->setZValue(1);
+    QPolygonF P = TI->polygon();
+    QList<Ligne> L = dep->pool[n].pieces[0].lignes;
+    for (int i = 0; i < 3; i++) {
+        QPointF P1 = P[i];
+        QPointF P2 = P[next(i)];
+        Voisin V = dep->meshModel->faces[nF].voisins[i];
+        int nl = -1;
+        int il = 0;
+        for (auto&& R : L) {
+            if (   (eq(R.p1, P1) && eq(R.p2, P2))
+                || (eq(R.p1, P2) && eq(R.p2, P1))) {
+                nl = il;
+                break;
+            }
+            il++;
+        }
+        if (nl > -1) {
+            dep->pool[n].pieces[0].lignes[nl].nb++;
+        } else {
+            Ligne li (P1, P2, nF, V.nF, V.cop);
+            dep->pool[n].pieces[0].lignes.append(li);
+        }
+    }
+}
+
 void MainWindow::couleurAssemble()
 {
-    int n = ui->tableCouleurs->currentRow();
-    if (n == 0)
-        return;   
-    if (dep->pool[n].elements.size() == 0)
+    if(!dep)
+        return;
+    dep->scene2d->clearSelection();
+    if (ui->tableCouleurs->rowCount() < 2)
         return;
 
+  dep->nums.clear();
+  for (int n = 1; n < ui->tableCouleurs->rowCount(); n++) {
+    if (dep->pool[n].elements.size() == 0)
+          continue;
+
     QList<int> wPool = dep->pool[n].elements;
+
+    for (auto && p : dep->pool[n].pieces){
+        for (auto && l : p.lignes) {
+            delete(l.li);
+        }
+    }
 
     dep->pool[n].pieces.clear();
 
     // Commencer avec la 1ère face
-    std::vector<Attache> att0;
-    att0.push_back(Attache(-1, wPool.takeFirst())); // commencer avec la 1ère face
-    dep->pool[n].pieces.push_back(att0);
+    commencePose(&wPool, n);
 
     int nbKO = 0;
     bool ok = false;
+    int idParentCourant = -1;
     while (wPool.size() > 0) { //  Boucler sur ce qui est posé
-        //int np = 1;
         for (auto&& p : dep->pool[n].pieces) {
-            for (auto&& piece : p) {
+            for (auto && piece : p.attaches) {
                 int wP = piece.vers;
+                TriangleItem *tSource = dep->t2d[wP];
+                if (piece.de == -1){
+                    idParentCourant = piece.vers;
+                    QPointF tpos = tSource->scenePos();
+                    tSource->setParentItem(0);
+                    tSource->setPos(tpos);
+                }
                 ok = false;
                 for(auto&& v : dep->meshModel->faces[wP].voisins) {
                     if (wPool.contains(v.nF)) {
-                        p.push_back(Attache(wP, v.nF));
+                        p.attaches.push_back(Attache(wP, v.nF));
+                        TriangleItem *tCible = dep->t2d[v.nF];
+                        tCible->setParentItem(dep->t2d[idParentCourant]);
+                        QPolygonF pCible = tCible->polygon();
+                        QPolygonF pSource = tSource->polygon();
+                        //pCible = dep->t2d[v.nF]->mapToScene(pCible);
+                        QPointF ptOrig = pSource[v.id];
+                        QPointF delta = ptOrig - pCible[v.idx];
+                        QTransform trT;
+                        trT.translate(delta.x(), delta.y());
+                        pCible = trT.map(pCible);
+
+                        QTransform trR;
+                        qreal angle = calc_angle(
+                            ptOrig,
+                            pSource[next(v.id)],
+                            pCible[prev(v.idx)]);
+                        trR.translate(ptOrig.x(), ptOrig.y());
+                        trR.rotate(-angle);
+                        trR.translate(-ptOrig.x(), -ptOrig.y());
+                        dep->t2d[v.nF]->setPolygon(trR.map(pCible));
+                        dep->t2d[v.nF]->estLie = true;
+                        dep->t2d[v.nF]->estPrem = false;
+                        dep->t2d[v.nF]->update();
+
+                        TriangleItem *TI = dep->t2d[v.nF];
+                        QPolygonF P = TI->polygon();
+                        QList<Ligne> L = p.lignes;
+                        for (int i = 0; i < 3; i++) {
+                            QPointF P1 = P[i];
+                            QPointF P2 = P[next(i)];
+                            Voisin V = dep->meshModel->faces[v.nF].voisins[i];
+                            int nl = -1;
+                            int il = 0;
+                            for (auto&& R : L) {
+                                if (   (eq(R.p1, P1) && eq(R.p2, P2))
+                                    || (eq(R.p1, P2) && eq(R.p2, P1))) {
+                                    nl = il;
+                                    break;
+                                } else
+                                    il++;
+                            }
+                            if (nl > -1) {
+                                p.lignes[nl].nb++;
+                            } else {
+                                //Ligne li (P1, P2, wP, V.nF, V.cop);
+                                Ligne li (P1, P2, V.nF, V.pnF, V.cop);
+                                p.lignes.append(li);
+                            }
+                        }
+
                         wPool.remove(wPool.indexOf(v.nF));
                         ok = true;
                         break;
@@ -333,39 +478,62 @@ void MainWindow::couleurAssemble()
         if (!ok)
             nbKO++;
 
-        if (nbKO >= 2) { // créer nouvelle pièce
-            std::vector<Attache> att1;
-            att1.push_back(Attache(-1, wPool.takeFirst())); // commencer avec la 1ère face
-            dep->pool[n].pieces.push_back(att1);
+        if (nbKO > 1) { // créer nouvelle pièce
+            commencePose(&wPool, n);
             nbKO = 0;
             ok = false;
         }
     }
 
-    // Rattachement des triangles par piece
-    int nP = 1;
-    for (auto&& p : dep->pool[n].pieces) {
-        qDebug() << "piece " << nP++;
-        for (auto&& piece : p) {
-            //auto v = dep->meshModel->faces[piece.vers].voisins;
-            //qDebug() << piece.de << "->" << piece.vers << " (" << v[0].nF << ", " << v[1].nF << ", " << v[2].nF << ")";
-            if (piece.de == -1) { // debut de piece, commencer le polygone
+    for (auto&& P:dep->pool[n].pieces) {
+        TriangleItem *ti0 = dep->t2d[P.attaches[0].vers];
+        for (auto&& L:P.lignes) {
+            QGraphicsLineItem *li = new QGraphicsLineItem(L.p1.x(), L.p1.y(), L.p2.x(), L.p2.y());
+            QPen p = QPen();
+            p.setColor(L.nb == 1 ? Qt::black : L.cop < 1 ? Qt::darkRed : Qt::green);
+            if (L.nb == 1)
+                p.setStyle(Qt::SolidLine);
+            else if (L.cop == 0)
+                p.setStyle(Qt::NoPen);
+            else
+                p.setStyle(L.cop < 1 ? Qt::DashLine : Qt::DashDotLine);
+            li->setPen(p);
+            li->setParentItem(ti0);
+            li->setData(0, QVariant::fromValue(-1));
+            li->setFlag(QGraphicsItem::ItemIsSelectable, true);
+            L.li = li;
+            if (L.nb == 1) {
+                int numC;
+                Nums num1 = Nums(L.id1, L.id2);
+                Nums num2 = Nums(L.id2, L.id1);
+                if (dep->nums.contains(num1)) {
+                    numC = dep->nums[dep->nums.indexOf(num1)].num;
+                } else
+                if (dep->nums.contains(num2)) {
+                    numC = dep->nums[dep->nums.indexOf(num2)].num;
+                } else {
+                    numC = dep->nums.size();
+                    num1.num = numC;
+                    dep->nums.append(num1);
+                }
 
+                QGraphicsSimpleTextItem *ti = new QGraphicsSimpleTextItem(QString::number(numC));
+                ti->setFont(dep->tf);
+                ti->setParentItem(li);
+                QPointF b = QPointF(ti->boundingRect().width()/2, ti->boundingRect().height()-2);
+                ti->setTransformOriginPoint(b);
+                ti->setRotation(180-li->line().angle());
+                QPointF c = li->line().center() - b;
+                ti->setPos(c);
             }
         }
     }
-
-    int nb = 1;
-    for (auto&& p : dep->pool[n].pieces) {
-        qDebug() << "Piece " <<  nb++;
-        for (auto&& piece : p) {
-            qDebug() << "de " << piece.de << " vers " << piece.vers;
-        }
-    }
+  }
+  dep->scene2d->update();
 }
 
 void MainWindow::couleurClic(int r, int c) {
-    if (c != 0 || dep == nullptr) {
+    if (c != 0 || !dep) {
         return;
     }
 
@@ -379,6 +547,7 @@ void MainWindow::couleurClic(int r, int c) {
             if (aC != r) {
                 dep->meshModel->faces[i].col = r;
                 dep->t2d[i]->col = r;
+                dep->t2d[i]->poolColor = dep->pool[r].couleur;
                 need2dRefresh = true;
                 dep->pool[r].elements.push_back(i);
                 auto aSupprimer = dep->pool[aC].elements.indexOf(i);
@@ -400,56 +569,143 @@ void MainWindow::couleurClic(int r, int c) {
 
 void MainWindow::tourner3DXD()
 {
+    if(!dep)
+        return;
     dep->fThetaX += dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::tourner3DXG()
 {
+    if(!dep)
+        return;
     dep->fThetaX -= dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::tourner3DYD()
 {
+    if(!dep)
+        return;
     dep->fThetaY += dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::tourner3DYG()
 {
+    if(!dep)
+        return;
     dep->fThetaY -= dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::tourner3DZD()
 {
+    if(!dep)
+        return;
     dep->fThetaZ += dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::tourner3DZG()
 {
+    if(!dep)
+        return;
     dep->fThetaZ -= dep->fPas;
     dep->dessineModele();
 }
 
 void MainWindow::zoom3DPlus()
 {
+    if(!dep)
+        return;
     ui->vue3d->scale(1.1f, 1.1f);
 }
 
 void MainWindow::zoom3DMoins()
 {
+    if(!dep)
+        return;
     ui->vue3d->scale(0.9f, 0.9f);
 }
 
 void MainWindow::zoom2DPlus()
 {
+    if(!dep)
+        return;
     ui->vue2d->scale(1.1f, 1.1f);
 }
 
 void MainWindow::zoom2DMoins()
 {
+    if(!dep)
+        return;
     ui->vue2d->scale(0.9f, 0.9f);
+}
+
+QPointF centroid(QPolygonF p) {
+return QPointF(
+    (p[0].x() + p[1].x() + p[2].x()) / 3,
+    (p[0].y() + p[1].y() + p[2].y()) / 3
+    );
+}
+
+void MainWindow::Rot2D(int a) {
+    if (!dep)
+        return;
+    auto sI = dep->scene2d->selectedItems();
+    if (sI.size() != 1) // n'accepte qu'une sélection unique
+        return;
+
+    TriangleItem *ti = dep->t2d[sI[0]->data(0).toInt()];
+
+    QPolygonF p = ti->polygon();
+    QPointF c = centroid(p);
+    QTransform tr;
+    tr.translate(c.x(), c.y()).rotate(a).translate(-c.x(), -c.y());
+
+    if (!ti->estPrem && !ti->estLie) {
+        dep->t2d[ti->id]->setPolygon(tr.map(p));
+    } else {
+        if (ti->estLie) {
+            ti = dep->t2d[ti->parentItem()->data(0).toInt()];
+        }
+        // tourne la première face
+        p = ti->polygon();
+        ti->setPolygon(tr.map(p));
+
+        // tourne les enfants
+        dep->t2d[ti->id]->setPolygon(tr.map(p));
+        for (auto&& i : ti->childItems()) {
+            int d = i->data(0).toInt();
+            if (d < 0) {
+                QGraphicsLineItem *li = qgraphicsitem_cast<QGraphicsLineItem*>(i);
+                QLineF lil = li->line();
+                li->setLine(tr.map(lil));
+                auto ci = li->childItems();
+                if (ci.size() > 0) {
+                    QPointF b = QPointF(ci[0]->boundingRect().width()/2, ci[0]->boundingRect().height()-2);
+                    ci[0]->setTransformOriginPoint(b);
+                    ci[0]->setRotation(180-li->line().angle());
+                    QPointF c = li->line().center() - b;
+                    ci[0]->setPos(c);
+
+                }
+            } else { // TriangleItem
+                TriangleItem *te = dep->t2d[d];
+                p = te->polygon();
+                te->setPolygon(tr.map(p));
+            }
+        }
+    }
+}
+
+void MainWindow::Rot2DPlus()
+{
+    Rot2D(5);
+}
+
+void MainWindow::Rot2DMoins()
+{
+    Rot2D(-5);
 }

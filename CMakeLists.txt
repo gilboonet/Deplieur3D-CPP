@@ -35,6 +35,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         vec3d.cpp vec3d.h
         voisin.h voisin.cpp
         triangle2d.h triangle2d.cpp
+        structures.h
+        structures.cpp
+        deplieurscene.h deplieurscene.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Deplieur APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -1,49 +1,46 @@
 #ifndef DEPLIAGE_H
 #define DEPLIAGE_H
 
+#include "mainwindow.h"
 #include "triangleitem.h"
 #include "mesh.h"
 #include "mat4x4.h"
 
-#include <QGraphicsScene>
-#include <QPointer>
 
+#include <QPointer>
+//#include <QGraphicsScene>
+#include "deplieurscene.h"
+#include <QTableWidget>
+
+#include "structures.h"
 
 class MainWindow;
-class TriangleItem;
-
-struct Attache {
-    int de;     // -1 si première face
-    int vers;
-};
-
-struct Pool {
-    QColor couleur;
-    QList<int> elements;
-    QList<std::vector<Attache>> pieces;
-};
 
 class Depliage
 {
 public:
-    Depliage();
     Depliage(MainWindow*);
 
     QPointer<MainWindow> parent;
-    QGraphicsScene *scene3d = nullptr;
-    QGraphicsScene *scene2d = nullptr;
-    std::vector<QGraphicsRectItem *> pages;
-    std::vector<TriangleItem *> t2d;
+    //QGraphicsScene *scene3d = nullptr;
+    //QGraphicsScene *scene2d = nullptr;
+    DeplieurScene *scene3d = nullptr;
+    DeplieurScene *scene2d = nullptr;
+    QList<QGraphicsRectItem *> pages;
+    QList<TriangleItem *> t2d;
+    QGraphicsLineItem *flash = nullptr;
     Mesh *meshModel = nullptr;
-    std::vector<int> sauveSel;
-    QVector<Pool> pool;
+    QList<int> sauveSel;
+    QList<Pool> pool;
+    QFont tf;
+    QList<Nums> nums;
 
-    float fYaw;
     static constexpr float fPas = 0.15f;
     float fThetaX;
     float fThetaY;
     float fThetaZ;
 
+    QGraphicsRectItem* ajoutePage();
     void dessineModele();
     void creeFaces2d();
     void trouveVoisinage();

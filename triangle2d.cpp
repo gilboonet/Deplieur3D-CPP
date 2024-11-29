@@ -2,12 +2,25 @@
 
 #include <QtMath>
 
+int sgn(qreal x) {
+    if (x < 0) return 1;
+    if (x > 0) return -1;
+    return 0;
+}
+
 bool eq(qreal a, qreal b) {
     return qFabs(a - b) < epsilon;
 }
 
 bool eq(QPointF a, QPointF b) {
     return eq(a.x(), b.x()) && eq(a.y(), b.y());
+}
+
+QPointF plusPetit(QPointF a, QPointF b) {
+    if ((a.x() < b.x()) || (eq(a.x(), b.x()) && (a.y() < b.y())) )
+        return a;
+    else
+        return b;
 }
 
 QPointF rotatePt(const QPointF& v, const QPointF& c, const qreal a) {
@@ -19,6 +32,14 @@ QPointF rotatePt(const QPointF& v, const QPointF& c, const qreal a) {
         (lcos *(v.y() - c.y())) -(lsin *(v.x() - c.x())) + c.y()
         );
     return r;
+}
+
+qreal calc_angle(QPointF a, QPointF b, QPointF c) {
+    QPointF ab = b - a;
+    QPointF ac = c - a;
+
+    qreal rot_ab_ac = atan2(ac.y() * ab.x() - ac.x() * ab.y(), ac.x() * ab.x() + ac.y() * ab.y());
+    return qRadiansToDegrees(rot_ab_ac);
 }
 
 

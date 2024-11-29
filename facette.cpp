@@ -12,11 +12,9 @@ facette::facette(vec3d a, vec3d b, vec3d c, int ai, int bi, int ci) {
 
 Triangle2d facette::d2ize() {
     vec3d d1 = this->p[1].Vector_Sub(this->p[0]);
-
     vec3d d2 = this->p[2].Vector_Sub(this->p[0]);
 
     QPointF P0(0, 0);
-
     QPointF P1(sqrt((d1.x * d1.x) +(d1.y * d1.y) +(d1.z * d1.z)), 0);
     qreal P2x =((d1.x * d2.x) +(d1.y * d2.y) +(d1.z * d2.z)) / P1.x();
     QPointF P2(
@@ -37,6 +35,22 @@ bool facette::eq3(facette t2, int n) {
     bool r = pt.distanceToPoint(this->p[0].toVector3D()) >= 1.0f
              && pt.distanceToPoint(this->p[1].toVector3D()) >= 1.0f
              && pt.distanceToPoint(this->p[2].toVector3D()) >= 1.0f;
+
+    return r;
+}
+
+qreal facette::isCoplanar(vec3d p) {
+    vec3d v1 = this->p[1].Vector_Sub(this->p[0]);
+    vec3d v2 = this->p[2].Vector_Sub(this->p[0]);
+
+    qreal a = v1.y * v2.z - v2.y * v1.z;
+    qreal b = v2.x * v1.z - v1.x * v2.z;
+    qreal c = v1.x * v2.y - v1.y * v2.x;
+    qreal d = -(a * this->p[0].x)
+              -(b * this->p[0].y)
+              -(c * this->p[0].z);
+
+    qreal r = (a * p.x) +(b * p.y) +(c * p.z) + d;
 
     return r;
 }

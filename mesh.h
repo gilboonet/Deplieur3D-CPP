@@ -8,6 +8,7 @@ class Mesh
 {
 public:
     std::vector<facette> faces;
+    vec3d dim;
 
     Mesh();
 

@@ -27,6 +27,16 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
+      <property name="handleWidth">
+       <number>3</number>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_4">
+       <layout class="QVBoxLayout" name="verticalLayoutMenu">
+        <property name="sizeConstraint">
+         <enum>QLayout::SizeConstraint::SetMinAndMaxSize</enum>
+        </property>
+       </layout>
+      </widget>
       <widget class="QWidget" name="verticalLayoutWidget_2">
        <layout class="QVBoxLayout" name="verticalLayoutCouleurs">
         <property name="spacing">
@@ -139,25 +149,6 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <property name="movable">
-    <bool>false</bool>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>LeftToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionNouveau"/>
-   <addaction name="actionOuvrir"/>
-   <addaction name="actionSauver"/>
-   <addaction name="actionExporter"/>
-   <addaction name="actionQuitter"/>
-  </widget>
   <action name="actionNouveau">
    <property name="icon">
     <iconset resource="resources.qrc">
@@ -364,6 +355,9 @@
    <property name="text">
     <string>+</string>
    </property>
+   <property name="shortcut">
+    <string>+</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
@@ -371,6 +365,31 @@
   <action name="action2DZoomMoins">
    <property name="text">
     <string>-</string>
+   </property>
+   <property name="shortcut">
+    <string>-</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="action2DRotMoins">
+   <property name="text">
+    <string>&lt;</string>
+   </property>
+   <property name="shortcut">
+    <string>/</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="action2DRotPlus">
+   <property name="text">
+    <string>&gt;</string>
+   </property>
+   <property name="shortcut">
+    <string>*</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

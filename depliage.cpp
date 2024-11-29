@@ -1,26 +1,28 @@
 #include "depliage.h"
 
-//#include <QPen>
+Ligne::Ligne() {}
+Ligne::Ligne(QPointF p1, QPointF p2, int id1, int id2, int cop) :
+    p1(p1), p2(p2), id1(id1), id2(id2), cop(cop), nb(1)
+{}
 
-Depliage::Depliage() {}
-
-Depliage::Depliage(MainWindow* p) {
+Depliage::Depliage(MainWindow* p)
+{   // CONSTRUCTEUR
     parent = QPointer<MainWindow>(p);
     if (scene3d == nullptr) {
-        scene3d = new QGraphicsScene(parent);
-        //scene3d->setStickyFocus(true);
+        scene3d = new DeplieurScene(parent);
     }
     if (scene2d == nullptr) {
-        scene2d = new QGraphicsScene(parent);
-        //scene2d->setStickyFocus(true);
+        scene2d = new DeplieurScene(parent);
     }
     meshModel = new Mesh;
 
-    fYaw = 0.0f;
-    //fPas = 0.15f;
     fThetaX = 0.0f;
     fThetaY = 0.0f;
     fThetaZ = 0.0f;
+
+    tf = QFont();
+    tf.setLetterSpacing(QFont::AbsoluteSpacing, -1);
+    tf.setStretch(75);
 }
 
 void Depliage::dessineModele()
@@ -82,12 +84,12 @@ void Depliage::dessineModele()
             facette triProjected, triTransformed, triViewed;
 
             // World Matrix Transform
-            //triTransformed = tri;
+            triTransformed = tri;
             triTransformed.p[0] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[0]);
             triTransformed.p[1] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[1]);
             triTransformed.p[2] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[2]);
-            triTransformed.col = tri.col;
-            triTransformed.id = tri.id;
+            //triTransformed.col = tri.col;
+            //triTransformed.id = tri.id;
 
             // Calculate triangle Normal
             vec3d normal, line1, line2;
@@ -234,7 +236,8 @@ void Depliage::dessineModele()
                 QPolygonF poly;
                 poly << t.p[0].toPointF() << t.p[1].toPointF() << t.p[2].toPointF();
 
-                TriangleItem *ti = new TriangleItem(parent, poly, t.id, t.col);
+                //TriangleItem *ti = new TriangleItem(parent, poly, t.id, t.col);
+                TriangleItem *ti = new TriangleItem(pool[t.col].couleur, poly, t.id, t.col);
                 basculeSelectionChanged(false);
                 for(int s: sauveSel) {
                     if (s == t.id) {
@@ -250,28 +253,37 @@ void Depliage::dessineModele()
     }
 }
 
-void Depliage::creeFaces2d()
+QGraphicsRectItem* Depliage::ajoutePage()
 {
-    // liste 2d basique
+    QGraphicsRectItem * page;
+    QPen pPage;
+
+    int p = static_cast<int>(pages.size());
+    page = new QGraphicsRectItem(p*220, 0, 210 ,297);
+    page->setData(0, QVariant(p));
+    pPage = QPen(Qt::blue);
+    pPage.setWidth(3);
+    page->setPen(pPage);
+    //page->setFlag(QGraphicsItem::ItemIsMovable);
+    pages.push_back(page);
+    scene2d->addItem(page);
+
+    return page;
+}
+
+void Depliage::creeFaces2d()
+{   // liste 2d basique
     qreal deltaW = 2;
     qreal deltaH = 2;
     scene2d->clear();
-    QPen pPage = QPen(Qt::blue);
-    pPage.setWidth(3);
 
-    QGraphicsRectItem *pageCourante = new QGraphicsRectItem(0,0, 210 ,297);
-    pageCourante->setPen(pPage);
-    pageCourante->setFlag(QGraphicsItem::ItemIsMovable);
-    pages.push_back(pageCourante);
-    scene2d->addItem(pageCourante);
     qreal H = 2;
     qreal W = 0;
 
-
+    QGraphicsRectItem * pageCourante = ajoutePage();
     TriangleItem * gp;
     for (auto&& t : meshModel->faces) {
         Triangle2d t2 = t.d2ize();
-        //t.neighbors =
         QPolygonF p;
         p << t2.a*50 << t2.b*50 << t2.c*50;
         p.translate(-p.boundingRect().left(), -p.boundingRect().top());
@@ -279,13 +291,13 @@ void Depliage::creeFaces2d()
         H = std::max(H, p.boundingRect().height());
         bool ok = false;
         if ( ((W + deltaW) < (pageCourante->boundingRect().right() -2))
-            && ((H + deltaH) < (pageCourante->boundingRect().bottom() -2)) )
+          && ((H + deltaH) < (pageCourante->boundingRect().bottom() -2)) )
         {
             p.translate(deltaW, deltaH);
             ok = true;
         } else {
-            if ((H + deltaH) < (pageCourante->boundingRect().bottom() -2)) {
-                // descend dans la page
+            if ((H + deltaH) < (pageCourante->boundingRect().bottom() -2))
+            {   // descend dans la page
                 deltaW = pageCourante->boundingRect().left() +2;
                 deltaH += H;
                 if ((H + deltaH) < (pageCourante->boundingRect().bottom() -2))
@@ -299,11 +311,7 @@ void Depliage::creeFaces2d()
 
         if (!ok)
         {   // nouvelle page
-            pageCourante = new QGraphicsRectItem(pages.size()*220, 0, 210 ,297);
-            pageCourante->setPen(pPage);
-            pageCourante->setFlag(QGraphicsItem::ItemIsMovable);
-            pages.push_back(pageCourante);
-            scene2d->addItem(pageCourante);
+            pageCourante = ajoutePage();
 
             // debut sur nouvelle page
             deltaH = 2;
@@ -311,13 +319,10 @@ void Depliage::creeFaces2d()
             p.translate(deltaW, deltaH);
             H = p.boundingRect().height();
         }
-        gp = new TriangleItem(parent, p, t.id, t.col);
+        gp = new TriangleItem(this->pool[t.col].couleur , p, t.id, t.col);
         t2d.push_back(gp);
-        gp->setFlag(QGraphicsItem::ItemIsMovable);
-        gp->setParentItem(pageCourante);
-        auto newItemPos = pageCourante->mapFromScene(gp->scenePos());
-        gp->setPos(newItemPos);
-        //scene2d->addItem(gp);
+        //gp->setFlag(QGraphicsItem::ItemIsMovable);
+        scene2d->addItem(gp);
         deltaW = p.boundingRect().right() + 2;
     }
 }
@@ -340,7 +345,19 @@ void Depliage::trouveVoisinage()
                     for (int k = 0; (k < 3) && !ok; k++)
                         if ( (meshModel->faces[vi].pi[k] == ti.pi[next(j)])
                             && (meshModel->faces[vi].pi[next(k)] == ti.pi[j]) ) {
-                            tmpV[j] = Voisin(j, vi, next(k));
+
+                            // calcule coplanéité
+                            int p;
+                            if (meshModel->faces[vi].eq3(ti, 0))
+                                p = 0;
+                            else if(meshModel->faces[vi].eq3(ti, 1))
+                                p = 1;
+                            else
+                                p = 2;
+
+                            qreal c = meshModel->faces[vi].isCoplanar(ti.p[p]);
+                            tmpV[j] = Voisin(j, i, vi, next(k), sgn(c));
+                            //tmpV[j] = Voisin(i, vi, next(k), sgn(c));
                             if (j == 2) {
                                 ti.voisins = tmpV;
                                 //qDebug() << i << ti.pi[0] << ti.pi[1] << ti.pi[2] << ti.voisins[0].nF << ti.voisins[1].nF << ti.voisins[2].nF;
@@ -366,7 +383,7 @@ void Depliage::basculeSelectionChanged(bool etat) {
     }
 }
 
-// next et prev retourne le prochain/précédent dans
+// next et prev retournent le prochain/précédent dans
 // une liste contenant [0,1,2] en bouclant si besoin
 int next(int n) { return n == 2 ? 0 : n+1; }
 int prev(int n) { return n == 0 ? 2 : n-1; }

@@ -11,6 +11,17 @@ vec3d::vec3d(float x, float y, float z) : x(x), y(y), z(z), w(1) {}
 
 vec3d::vec3d(QString sX, QString sY, QString sZ) : x(sX.toFloat()), y(sY.toFloat()), z(sZ.toFloat()), w(1) {}
 
+QDebug operator<< (QDebug d, const vec3d &v) {
+    d << v.x << ", " << v.y << ", " << v.z;
+    return d;
+}
+
+/*std::ostream& operator<<(std::ostream& os, const vec3d& v)
+{
+    os << v.x << ", " << v.y << ", " << v.z;
+    return os;
+}*/
+
 vec3d vec3d::Vector_Add(vec3d& v2)
 {
     return { this->x + v2.x, this->y + v2.y, this->z + v2.z };

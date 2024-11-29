@@ -9,6 +9,7 @@
 
 class Depliage;
 
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -26,8 +27,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    //void connectSignalToSlot(QObject* sender, std::string signalName, QObject* receiver, std::string slotName);
-    //void ajouteAction(QWidget *, QAction *, std::string);
+    void commencePose(QList<int>*, int);
+    void Rot2D(int);
 
 private slots:
     void nouveau();
@@ -53,12 +54,15 @@ private slots:
 
     void zoom2DPlus();
     void zoom2DMoins();
+    void Rot2DPlus();
+    void Rot2DMoins();
 
     void AfficheNbSel(QGraphicsScene *);
 
 public slots:
     void SelectionDansScene3D();
     void SelectionDansScene2D();
+    void changeCouleur();
 };
 
 #endif // MAINWINDOW_H

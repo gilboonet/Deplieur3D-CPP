@@ -5,12 +5,13 @@ class Voisin
 {
 public:
     int id;
+    int pnF;
     int nF;
     int idx;
     int cop;
 
     Voisin();
-    Voisin(int, int, int);
+    Voisin(int, int, int, int, int);
 };
 
 #endif // VOISIN_H

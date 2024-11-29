@@ -31,6 +31,8 @@ public:
     Triangle2d d2ize();
     vec3d point(const int);
     bool eq3(facette, int);
+    qreal isCoplanar(vec3d);
+    qreal isCoplanar(QVector3D);
 
 };
 #endif // FACETTE_H

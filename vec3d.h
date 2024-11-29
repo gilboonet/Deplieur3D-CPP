@@ -1,6 +1,7 @@
 #ifndef VEC3D_H
 #define VEC3D_H
 
+#include <QDebug>
 #include <QVector3D>
 
 class vec3d
@@ -27,6 +28,8 @@ public:
     vec3d Vector_IntersectPlane(vec3d&, vec3d&, vec3d&);
     QPointF toPointF();
     QVector3D toVector3D();
+
+    friend QDebug operator<< (QDebug d, const vec3d& v);
 };
 
 #endif // VEC3D_H

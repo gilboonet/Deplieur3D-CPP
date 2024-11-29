@@ -3,9 +3,13 @@
 
 #include <QPointF>
 
-bool eq(qreal a, qreal b);
-bool eq(QPointF a, QPointF b);
-QPointF rotatePt(const QPointF& v, const QPointF& c, const qreal a);
+int sgn(qreal);
+bool eq(qreal, qreal);
+bool eq(QPointF, QPointF);
+QPointF rotatePt(const QPointF&, const QPointF&, const qreal);
+QPointF plusPetit(QPointF, QPointF);
+qreal calc_angle(QPointF, QPointF, QPointF);
+
 const qreal epsilon = 1;
 
 class Triangle2d
