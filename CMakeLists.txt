@@ -38,6 +38,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         structures.h
         structures.cpp
         deplieurscene.h deplieurscene.cpp
+        triangleligneitem.h triangleligneitem.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Deplieur APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -51,7 +52,7 @@ else()
             ${PROJECT_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(Deplieur
             ${PROJECT_SOURCES}
@@ -62,6 +63,7 @@ else()
 endif()
 
 target_link_libraries(Deplieur PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+#set_property(TARGET Deplieur PROPERTY AUTOMOC ON)
 
 #target_link_options(Deplieur PUBLIC -sASYNCIFY -Os)
 

@@ -20,9 +20,14 @@ Depliage::Depliage(MainWindow* p)
     fThetaY = 0.0f;
     fThetaZ = 0.0f;
 
-    tf = QFont();
-    tf.setLetterSpacing(QFont::AbsoluteSpacing, -1);
-    tf.setStretch(75);
+#ifdef Q_OS_WASM
+    dYt = -2;
+#else
+    dYt = -1;
+#endif
+
+    tf = QFont("Bitstream Vera Sans", 8);
+    tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
 }
 
 void Depliage::dessineModele()
@@ -260,6 +265,45 @@ QGraphicsRectItem* Depliage::ajoutePage()
 
     int p = static_cast<int>(pages.size());
     page = new QGraphicsRectItem(p*220, 0, 210 ,297);
+
+    QGraphicsPolygonItem * marge = new QGraphicsPolygonItem();
+    marge->setPen(QPen(QBrush(Qt::red), 3));
+    marge->setZValue(-1);
+    QPolygonF pMarge;
+
+    qreal a = 9;
+    qreal b = 24;
+    qreal c = 118;
+    qreal d = 205;
+
+    pMarge << QPoint(a + b, a + b + d + b + a)
+           << QPoint(a + b, a + b + d + b)
+           << QPoint(a, a + b + d + b)
+           << QPoint(a, a + b + d)
+           << QPointF(0, a + b + d)
+           << QPointF(0, a + b)
+           << QPointF(a, a + b)
+           << QPointF(a, a)
+           << QPointF(a + b, a)
+           << QPointF(a + b, 0)
+           << QPointF(a + b + c, 0)
+           << QPointF(a + b + c, a)
+           << QPointF(a + b + c + b, a)
+           << QPointF(a + b + c + b, a + b)
+           << QPointF(a + b + c + b + a, a + b)
+           << QPointF(a + b + c + b + a, a + b + d)
+           << QPointF(a + b + c + b, a + b + d)
+           << QPointF(a + b + c + b, a + b + d + b)
+           << QPointF(a + b + c, a + b + d + b)
+           << QPointF(a + b + c, a + b + d + b + a);
+    marge->setPolygon(pMarge);
+    marge->setParentItem(page);
+    QPointF delta = {
+        page->rect().width() - (a+b+c+b+a),
+        page->rect().height() -(a+b+d+b+a) };
+    delta /= 2;
+    marge->setPos(delta+ QPoint(220 *p, 0));
+
     page->setData(0, QVariant(p));
     pPage = QPen(Qt::blue);
     pPage.setWidth(3);
@@ -320,6 +364,7 @@ void Depliage::creeFaces2d()
             H = p.boundingRect().height();
         }
         gp = new TriangleItem(this->pool[t.col].couleur , p, t.id, t.col);
+        gp->setZValue(2);
         t2d.push_back(gp);
         //gp->setFlag(QGraphicsItem::ItemIsMovable);
         scene2d->addItem(gp);

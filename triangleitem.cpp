@@ -1,9 +1,9 @@
 #include "triangleitem.h"
-//#include "depliage.h"
 
 #include <QTableWidget>
 #include <QPainter>
 #include "deplieurscene.h"
+//#include <QGraphicsItem>
 
 TriangleItem::TriangleItem(QColor poolColor, QPolygonF poly, int id, int col = 0)
 {
@@ -16,9 +16,7 @@ TriangleItem::TriangleItem(QColor poolColor, QPolygonF poly, int id, int col = 0
     setFlag(ItemIsSelectable);
     setFlag(ItemIsFocusable);
     setFlag(ItemSendsGeometryChanges);
-    setFlag(ItemSendsScenePositionChanges);
-    //setCacheMode(NoCache);
-    //setZValue(-1);
+    //setFlag(ItemSendsScenePositionChanges);
     estLie = false;
     estPrem = false;
 }
@@ -33,9 +31,8 @@ void TriangleItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         opt.state = QStyle::State_None;
     } else {
         QColor c = this->poolColor;
-        if (estPrem)
-            c = c.darker();
-        //c.setAlpha(estPrem ? 200 : 235);
+        // if (estPrem)
+        //     c = c.lighter();
         c.setAlpha(235);
         if (estLie || estPrem) {
             p = QPen(c);
@@ -54,45 +51,35 @@ void TriangleItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *)
 
     if (!sc)
         return;
-
-    sc->twC->selectRow(this->col);
-}
-
-/*QVariant TriangleItem::itemChange(GraphicsItemChange change, const QVariant &value)
-{
-    if (change == ItemPositionHasChanged && scene()) {
-        QPointF delta = value.toPointF() - this->pos();
-        QPolygonF tp = this->polygon();
-        QTransform tr;
-        tr.translate(delta.x(), delta.y());
-        this->setPolygon(tr.map(tp));
-    }
-
-    return value;
-    //return QGraphicsItem::itemChange(change, value);
-}*/
-/*
-void TriangleItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
-{
-    if (estLie) {
-        event->ignore();
-    }
-    QGraphicsPolygonItem::mousePressEvent(event);
+    emit sc->changeCouleur(this->col);
 }
 
 void TriangleItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    if (estLie) {
-        event->ignore();
-    }
-    QGraphicsPolygonItem::mouseMoveEvent(event);
+    Qt::KeyboardModifiers keys;
+    keys.setFlag(Qt::ControlModifier);
+    event->setModifiers(keys);
+    if (estLie)
+        qgraphicsitem_cast<TriangleItem*>(parentItem())->mouseMoveEvent(event);
+    else
+        QGraphicsItem::mouseMoveEvent(event);
 }
 
 void TriangleItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    if (estLie) {
-        event->ignore();
-    }
-    QGraphicsPolygonItem::mouseReleaseEvent(event);
+    Qt::KeyboardModifiers keys;
+    keys.setFlag(Qt::ControlModifier);
+    event->setModifiers(keys);
+    if (estLie)
+        qgraphicsitem_cast<TriangleItem*>(parentItem())->mouseReleaseEvent(event);
+    else
+        QGraphicsItem::mouseReleaseEvent(event);
 }
-*/
+
+void TriangleItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    Qt::KeyboardModifiers keys;
+    keys.setFlag(Qt::ControlModifier);
+    event->setModifiers(keys);
+    QGraphicsPolygonItem::mousePressEvent(event);
+}

@@ -1,7 +1,6 @@
 #ifndef TRIANGLEITEM_H
 #define TRIANGLEITEM_H
 
-//#include "mainwindow.h"
 #include "structures.h"
 
 #include <QList>
@@ -12,8 +11,6 @@
 #include <QStyleOptionGraphicsItem>
 #include <QGraphicsSceneEvent>
 
-//class MainWindow;
-//class Depliage;
 
 class TriangleItem : public QGraphicsPolygonItem
 {
@@ -29,10 +26,9 @@ public:
     bool estLie = false;
     void paint(QPainter *, const QStyleOptionGraphicsItem *, QWidget *) override;
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *) override;
-    //void mousePressEvent(QGraphicsSceneMouseEvent *);
-    //void mouseMoveEvent(QGraphicsSceneMouseEvent *);
-    //void mouseReleaseEvent(QGraphicsSceneMouseEvent *);
-    //QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
+    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
 };
 
 #endif // TRIANGLEITEM_H

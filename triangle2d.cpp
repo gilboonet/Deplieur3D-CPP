@@ -1,6 +1,7 @@
 #include "triangle2d.h"
 
 #include <QtMath>
+#include <QList>
 
 int sgn(qreal x) {
     if (x < 0) return 1;
@@ -45,6 +46,10 @@ qreal calc_angle(QPointF a, QPointF b, QPointF c) {
 
 Triangle2d::Triangle2d() {}
 Triangle2d::Triangle2d(QPointF a, QPointF b, QPointF c) : a(a), b(b), c(c) {}
+
+QList<QPointF> Triangle2d::toPolygon() {
+    return {a, b, c};
+}
 
 QPointF Triangle2d::point(const int n) {
     return n == 0 ? this->a : n == 1 ? this->b : this->c;

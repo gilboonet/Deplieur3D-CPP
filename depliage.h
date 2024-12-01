@@ -39,6 +39,7 @@ public:
     float fThetaX;
     float fThetaY;
     float fThetaZ;
+    int dYt;
 
     QGraphicsRectItem* ajoutePage();
     void dessineModele();

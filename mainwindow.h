@@ -58,11 +58,11 @@ private slots:
     void Rot2DMoins();
 
     void AfficheNbSel(QGraphicsScene *);
+    void changeCouleur(int);
 
 public slots:
     void SelectionDansScene3D();
     void SelectionDansScene2D();
-    void changeCouleur();
 };
 
 #endif // MAINWINDOW_H

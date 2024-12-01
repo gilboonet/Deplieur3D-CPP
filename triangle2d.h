@@ -27,6 +27,7 @@ public:
     Triangle2d operator *(const qreal&);
     Triangle2d operator /(const qreal&);
 
+    QList<QPointF> toPolygon();
     QPointF point(const int);
     Triangle2d& rotate(const QPointF&, const qreal);
     bool overlap(const Triangle2d&);

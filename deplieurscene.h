@@ -2,13 +2,15 @@
 #define DEPLIEURSCENE_H
 
 #include <QGraphicsScene>
-#include <QTableWidget>
 
 class DeplieurScene : public QGraphicsScene
 {
+    Q_OBJECT
 public:
     explicit DeplieurScene(QObject *parent = nullptr);
-    QTableWidget * twC;
+
+signals:
+    void changeCouleur(int);
 };
 
 #endif // DEPLIEURSCENE_H
