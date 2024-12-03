@@ -6,9 +6,7 @@
 #include "mesh.h"
 #include "mat4x4.h"
 
-
 #include <QPointer>
-//#include <QGraphicsScene>
 #include "deplieurscene.h"
 #include <QTableWidget>
 
@@ -22,8 +20,6 @@ public:
     Depliage(MainWindow*);
 
     QPointer<MainWindow> parent;
-    //QGraphicsScene *scene3d = nullptr;
-    //QGraphicsScene *scene2d = nullptr;
     DeplieurScene *scene3d = nullptr;
     DeplieurScene *scene2d = nullptr;
     QList<QGraphicsRectItem *> pages;
@@ -40,6 +36,7 @@ public:
     float fThetaY;
     float fThetaZ;
     int dYt;
+    float echelle = 1;
 
     QGraphicsRectItem* ajoutePage();
     void dessineModele();

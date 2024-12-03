@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QTransform>
 #include "triangleligneitem.h"
+#include <QtSvg/QSvgGenerator>
+#include <QBuffer>
 
 #include <QDebug>
 
@@ -33,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     connect(ui->actionNouveau, &QAction::triggered, this, &MainWindow::nouveau);
     connect(ui->actionQuitter, &QAction::triggered, this, &MainWindow::quitter);
+    connect(ui->actionExporter, &QAction::triggered, this, &MainWindow::exporter);
 
     // Menu Pieces/couleurs
     QToolBar *tbCol = new QToolBar(this);
@@ -134,6 +137,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tb2d->addAction(ui->action2DRotPlus);
     connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
 
+    tb2d->addSeparator();
+    //leEchelle =  new QLineEdit("1.0");
+    leEchelle =  new QLineEdit();
+    leEchelle->setMaximumWidth(50);
+    QDoubleValidator *val = new QDoubleValidator();
+    val->setLocale(QLocale::C);
+    val->setNotation(QDoubleValidator::StandardNotation);
+    val->setRange(0.1f, 100.f);
+    leEchelle->setValidator(val);
+    tb2d->addWidget(new QLabel("Echelle:"));
+    tb2d->addWidget(leEchelle);
+    //connect(leEchelle, QLineEdit::textEdited, this, &MainWindow::majEchelle);
+    connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
+
     ui->verticalLayout2D->setMenuBar(tb2d);
 }
 
@@ -154,6 +171,78 @@ void MainWindow::quitter()
 
 void MainWindow::exporter()
 {
+    if (!dep)
+        return;
+
+    QSvgGenerator SG;
+    SG.setSize(QSize(210, 297));
+    SG.setViewBox(QRect(0, 0, 210, 297));
+    SG.setTitle("EXPORT SVG");
+    //SG.setDescription(tr("An SVG drawing created by the SVG Generator "
+    //                            "Example provided with Qt."));
+
+    QPainter painter;
+    QBuffer buffer;
+    SG.setOutputDevice(&buffer);
+
+    QPen pen = QPen();
+
+    painter.begin(&SG);
+    painter.setFont(dep->tf);
+    for (auto && pool : dep->pool) {
+        for (auto && piece : pool.pieces) {
+            TriangleItem *prem = dep->t2d[piece.premId];
+            for (auto && ligne : prem->childItems()) {
+                TriangleLigneItem *tli = qgraphicsitem_cast<TriangleLigneItem*>(ligne);
+                if (tli) {
+                    QPointF p1 = tli->mapToScene(tli->line().p1());
+                    QPointF p2 = tli->mapToScene(tli->line().p2());
+                    if (tli->ligne->nb == 1) {
+                        // LIGNE DE COUPE
+                        pen.setColor(Qt::red);
+                        pen.setStyle(Qt::SolidLine);
+                    } else {
+                        // PLI
+                        if (tli->ligne->cop > 0) {
+                            // PLI MONTAGNE
+                            pen.setColor(Qt::darkRed);
+                            pen.setStyle(Qt::DashLine);
+                        } else if (tli->ligne->cop < 0) {
+                            // PLI VALLEE
+                            pen.setColor(Qt::green);
+                            pen.setStyle(Qt::DashDotLine);
+                        } else {
+                            pen.setColor(Qt::black);
+                            pen.setStyle(Qt::NoPen);
+                        }
+                    }
+                    painter.setPen(pen);
+                    painter.drawLine(p1, p2);
+
+                    for (auto&& litxt : tli->childItems()) {
+                        QGraphicsSimpleTextItem *txti = qgraphicsitem_cast<QGraphicsSimpleTextItem*>(litxt);
+                        if (txti) {
+                            pen.setColor(Qt::blue);
+                            pen.setStyle(Qt::SolidLine);
+                            painter.setPen(pen);
+                            QPointF c = ((p1 + p2) / 2);
+                            painter.save();
+                            painter.translate(c);
+                            painter.rotate(180-tli->line().angle());
+                            QPointF b(- txti->boundingRect().width()/2, -1.8f);
+                            painter.drawText(b, txti->text());
+                            painter.restore();
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    painter.end();
+
+    QFileDialog::saveFileContent(buffer.data(), "myExport.svg");
 }
 
 void MainWindow::nouveau()
@@ -162,8 +251,9 @@ void MainWindow::nouveau()
         if (!fileName.isEmpty()) {
             // Use fileName and fileContent
             dep = new Depliage(this);
+            leEchelle->setText(QString::number(dep->echelle,'g',2));
             ui->vue3d->setScene(dep->scene3d);
-            ui->vue2d->setScene(dep->scene2d);
+            ui->vue2d->setScene(dep->scene2d);            
             QFileInfo f(fileName);
             setWindowTitle("Deplieur [" + f.fileName() + "]");
             dep->meshModel->LoadFromObjectFile(fileContent);
@@ -240,6 +330,23 @@ void MainWindow::AfficheNbSel(QGraphicsScene *scene)
 void MainWindow::changeCouleur(int couleur)
 {
     ui->tableCouleurs->selectRow(couleur);
+}
+
+void MainWindow::changeEchelle()
+{
+    if (!dep)
+        return;
+
+    bool ok;
+    qreal n = leEchelle->text().toFloat(&ok);
+
+    if (ok) {
+        dep->echelle = n;
+        for (auto&& i : dep->t2d) {
+            if (!(i->parentItem()))
+                i->setScale(n);
+        }
+    }
 }
 
 void MainWindow::SelectionDansScene2D()
@@ -347,8 +454,9 @@ void MainWindow::commencePose(QList<int>*pool, int n)
 {
     Piece att;
     att.attaches.push_back(Attache(-1, pool->takeFirst()));
-    dep->pool[n].pieces.push_back(att);
     int nF = att.attaches[0].vers;
+    att.premId = nF;
+    dep->pool[n].pieces.push_back(att);
 
     TriangleItem *TI = dep->t2d[nF];
     TI->estLie = false;
@@ -399,6 +507,7 @@ void MainWindow::couleurAssemble()
         for (auto && piece : p.attaches) {
             int wP = piece.vers;
             TriangleItem *tSource = dep->t2d[wP];
+            //tSource->setVisible(true);
             for (auto && ti : tSource->childItems()) {
                 if (ti->data(0).toInt() < 0)
                     delete(ti);
@@ -419,19 +528,19 @@ void MainWindow::couleurAssemble()
             for (auto && piece : p.attaches) {
                 int wP = piece.vers;
                 TriangleItem *tSource = dep->t2d[wP];
-                tSource->setFiltersChildEvents(true);
+                //tSource->setFiltersChildEvents(true);
                 if (piece.de == -1){
                     idParentCourant = piece.vers;
                     QPointF tpos = tSource->scenePos();
                     tSource->setParentItem(0);
                     tSource->setPos(tpos);
                 }
-                //tSource->setFlag(QGraphicsItem::ItemIsMovable, false);
                 ok = false;
                 for(auto&& v : dep->meshModel->faces[wP].voisins) {
                     if (wPool.contains(v.nF)) {
                         p.attaches.push_back(Attache(wP, v.nF));
                         TriangleItem *tCible = dep->t2d[v.nF];
+                        tCible->setVisible(true);
                         tCible->estLie = true;
                         tCible->estPrem = false;
                         tCible->setParentItem(dep->t2d[idParentCourant]);
@@ -548,8 +657,15 @@ void MainWindow::couleurClic(int r, int c) {
     int nbF = dep->meshModel->faces.size();
     bool need2dRefresh = false;
 
-    for(auto &item:dep->scene2d->selectedItems()) {
-        int i = item->data(0).toInt();
+    QList<int> LO;
+    for(auto &item:dep->scene3d->selectedItems()) {
+        LO.append(item->data(0).toInt());
+    }
+    std::sort(LO.begin(), LO.end());
+
+    for(int i : LO) {
+        //int i = item->data(0).toInt();
+        //TriangleItem *item = dep->t2d[i];
         if ( i >= 0 && i < nbF) {
             int aC = dep->meshModel->faces[i].col;
             if (aC != r) {
@@ -558,7 +674,7 @@ void MainWindow::couleurClic(int r, int c) {
                 dep->t2d[i]->poolColor = dep->pool[r].couleur;
                 dep->t2d[i]->estLie = false;
                 dep->t2d[i]->estPrem = false;
-                dep->t2d[i]->setParentItem(0);
+                //dep->t2d[i]->setParentItem(0);
                 dep->t2d[i]->setPos(dep->t2d[i]->mapToScene(dep->t2d[i]->pos()));
                 need2dRefresh = true;
                 dep->pool[r].elements.push_back(i);
@@ -705,8 +821,10 @@ void MainWindow::Rot2D(int a) {
                 }
             } else { // TriangleItem
                 TriangleItem *te = dep->t2d[d];
-                p = te->polygon();
-                te->setPolygon(tr.map(p));
+                if (te->col == ti->col){
+                    p = te->polygon();
+                    te->setPolygon(tr.map(p));
+                }
             }
         }
     }

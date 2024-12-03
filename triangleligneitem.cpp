@@ -20,7 +20,7 @@ void TriangleLigneItem::paint(QPainter *painter, const QStyleOptionGraphicsItem 
     else if (ligne->cop == 0)
         p.setStyle(Qt::NoPen);
     else
-        p.setStyle(ligne->cop < 1 ? Qt::DashLine : Qt::DashDotLine);
+        p.setStyle(ligne->cop > 0 ? Qt::DashLine : Qt::DashDotLine);
 
     painter->setPen(p);
     painter->drawLine(line());

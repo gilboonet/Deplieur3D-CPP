@@ -16,9 +16,10 @@ TriangleItem::TriangleItem(QColor poolColor, QPolygonF poly, int id, int col = 0
     setFlag(ItemIsSelectable);
     setFlag(ItemIsFocusable);
     setFlag(ItemSendsGeometryChanges);
-    //setFlag(ItemSendsScenePositionChanges);
+    setFlag(ItemSendsScenePositionChanges);
     estLie = false;
     estPrem = false;
+    //setVisible(false);
 }
 
 void TriangleItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)

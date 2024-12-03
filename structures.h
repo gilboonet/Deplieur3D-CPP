@@ -24,6 +24,7 @@ public :
 struct Piece {
     QList<Attache> attaches;
     QList<Ligne> lignes;
+    int premId;
 };
 
 struct Pool {

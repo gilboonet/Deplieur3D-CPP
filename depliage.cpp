@@ -241,8 +241,8 @@ void Depliage::dessineModele()
                 QPolygonF poly;
                 poly << t.p[0].toPointF() << t.p[1].toPointF() << t.p[2].toPointF();
 
-                //TriangleItem *ti = new TriangleItem(parent, poly, t.id, t.col);
                 TriangleItem *ti = new TriangleItem(pool[t.col].couleur, poly, t.id, t.col);
+                ti->setVisible(true);
                 basculeSelectionChanged(false);
                 for(int s: sauveSel) {
                     if (s == t.id) {
@@ -366,7 +366,6 @@ void Depliage::creeFaces2d()
         gp = new TriangleItem(this->pool[t.col].couleur , p, t.id, t.col);
         gp->setZValue(2);
         t2d.push_back(gp);
-        //gp->setFlag(QGraphicsItem::ItemIsMovable);
         scene2d->addItem(gp);
         deltaW = p.boundingRect().right() + 2;
     }
