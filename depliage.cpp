@@ -1,5 +1,7 @@
 #include "depliage.h"
 
+#include <QGraphicsView>
+
 Ligne::Ligne() {}
 Ligne::Ligne(QPointF p1, QPointF p2, int id1, int id2, int cop) :
     p1(p1), p2(p2), id1(id1), id2(id2), cop(cop), nb(1)
@@ -13,6 +15,7 @@ Depliage::Depliage(MainWindow* p)
     }
     if (scene2d == nullptr) {
         scene2d = new DeplieurScene(parent);
+        //scene2d->setFont(tf);
     }
     meshModel = new Mesh;
 
@@ -26,8 +29,8 @@ Depliage::Depliage(MainWindow* p)
     dYt = -1;
 #endif
 
-    tf = QFont("Bitstream Vera Sans", 8);
-    tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
+    // tf = QFont("Bitstream Vera Sans", 8);
+    // tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
 }
 
 void Depliage::dessineModele()
@@ -268,7 +271,7 @@ QGraphicsRectItem* Depliage::ajoutePage()
 
     QGraphicsPolygonItem * marge = new QGraphicsPolygonItem();
     marge->setPen(QPen(QBrush(Qt::red), 3));
-    marge->setZValue(-1);
+    page->setZValue(0);
     QPolygonF pMarge;
 
     qreal a = 9;
@@ -308,7 +311,7 @@ QGraphicsRectItem* Depliage::ajoutePage()
     pPage = QPen(Qt::blue);
     pPage.setWidth(3);
     page->setPen(pPage);
-    //page->setFlag(QGraphicsItem::ItemIsMovable);
+    page->setBrush(QBrush(Qt::white));
     pages.push_back(page);
     scene2d->addItem(page);
 
@@ -316,59 +319,21 @@ QGraphicsRectItem* Depliage::ajoutePage()
 }
 
 void Depliage::creeFaces2d()
-{   // liste 2d basique
-    qreal deltaW = 2;
-    qreal deltaH = 2;
-    scene2d->clear();
-
-    qreal H = 2;
-    qreal W = 0;
-
-    QGraphicsRectItem * pageCourante = ajoutePage();
-    TriangleItem * gp;
+{
+    ajoutePage();
+    TriangleItem *gp;
     for (auto&& t : meshModel->faces) {
         Triangle2d t2 = t.d2ize();
         QPolygonF p;
-        p << t2.a*50 << t2.b*50 << t2.c*50;
+        p << t2.a *50 << t2.b *50 << t2.c *50;
         p.translate(-p.boundingRect().left(), -p.boundingRect().top());
-        W = p.boundingRect().width();
-        H = std::max(H, p.boundingRect().height());
-        bool ok = false;
-        if ( ((W + deltaW) < (pageCourante->boundingRect().right() -2))
-          && ((H + deltaH) < (pageCourante->boundingRect().bottom() -2)) )
-        {
-            p.translate(deltaW, deltaH);
-            ok = true;
-        } else {
-            if ((H + deltaH) < (pageCourante->boundingRect().bottom() -2))
-            {   // descend dans la page
-                deltaW = pageCourante->boundingRect().left() +2;
-                deltaH += H;
-                if ((H + deltaH) < (pageCourante->boundingRect().bottom() -2))
-                {
-                    p.translate(deltaW, deltaH);
-                    H = p.boundingRect().height();
-                    ok = true;
-                }
-            }
-        }
-
-        if (!ok)
-        {   // nouvelle page
-            pageCourante = ajoutePage();
-
-            // debut sur nouvelle page
-            deltaH = 2;
-            deltaW = pageCourante->boundingRect().left() +2;
-            p.translate(deltaW, deltaH);
-            H = p.boundingRect().height();
-        }
         gp = new TriangleItem(this->pool[t.col].couleur , p, t.id, t.col);
-        gp->setZValue(2);
+        gp->setZValue(-2);
         t2d.push_back(gp);
         scene2d->addItem(gp);
-        deltaW = p.boundingRect().right() + 2;
     }
+    QList<QGraphicsView*> v = scene2d->views();
+    v.first()->fitInView(scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
 }
 
 void Depliage::trouveVoisinage()

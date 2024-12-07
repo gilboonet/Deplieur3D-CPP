@@ -40,6 +40,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         structures.cpp
         deplieurscene.h deplieurscene.cpp
         triangleligneitem.h triangleligneitem.cpp
+        trianglelangitem.h trianglelangitem.cpp
+        numitem.h numitem.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Deplieur APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -33,18 +33,27 @@ struct Pool {
     QList<Piece> pieces;
 };
 
+enum TLang {
+    L00,
+    L10,
+    L01,
+    L11
+};
+
 class Nums {
 public :
     int id1;
     int id2;
     int num;
+    enum TLang tlang = L00;
     Nums();
     Nums(int, int);
     Nums(int, int, int);
     bool operator==(const Nums&) const;
 };
 
-
+QPointF centroid(QPolygonF poly);
+QPointF centroid4(QPolygonF poly);
 
 #endif // STRUCTURES_H
 

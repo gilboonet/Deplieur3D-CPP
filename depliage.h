@@ -28,7 +28,7 @@ public:
     Mesh *meshModel = nullptr;
     QList<int> sauveSel;
     QList<Pool> pool;
-    QFont tf;
+    //QFont tf;
     QList<Nums> nums;
 
     static constexpr float fPas = 0.15f;

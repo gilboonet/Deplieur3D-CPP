@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QTransform>
 #include "triangleligneitem.h"
+#include "trianglelangitem.h"
+#include "numitem.h"
 #include <QtSvg/QSvgGenerator>
 #include <QBuffer>
 
@@ -138,7 +140,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
 
     tb2d->addSeparator();
-    //leEchelle =  new QLineEdit("1.0");
     leEchelle =  new QLineEdit();
     leEchelle->setMaximumWidth(50);
     QDoubleValidator *val = new QDoubleValidator();
@@ -148,8 +149,21 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     leEchelle->setValidator(val);
     tb2d->addWidget(new QLabel("Echelle:"));
     tb2d->addWidget(leEchelle);
-    //connect(leEchelle, QLineEdit::textEdited, this, &MainWindow::majEchelle);
     connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
+
+    tb2d->addSeparator();
+    tb2d->addWidget(new QLabel("Lang.:"));
+    cbLanguettes = new QComboBox();
+    cbLanguettes->addItems({"Sans", "1/paire", "2/paire"});
+    cbLanguettes->setMaximumWidth(100);
+    tb2d->addWidget(cbLanguettes);
+    connect(cbLanguettes, &QComboBox::currentIndexChanged, this, &MainWindow::changeTypeLang);
+
+    tb2d->addSeparator();
+    tb2d->addAction(ui->actionPgMoins);
+    tb2d->addAction(ui->actionPgPlus);
+    connect(ui->actionPgPlus, &QAction::triggered, this, &MainWindow::ajoutePage);
+    connect(ui->actionPgMoins, &QAction::triggered, this, &MainWindow::supprimePage);
 
     ui->verticalLayout2D->setMenuBar(tb2d);
 }
@@ -169,14 +183,54 @@ void MainWindow::quitter()
     QApplication::quit();
 }
 
+void MainWindow::ajoutePage() {
+    if (!dep)
+        return;
+
+    dep->ajoutePage();
+    ui->vue2d->fitInView(dep->scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
+}
+
+void MainWindow::supprimePage() {
+    if (!dep)
+        return;
+
+    if (!dep->pages.count() > 1) {
+        dep->scene2d->removeItem(dep->pages.last());
+        dep->pages.removeLast();
+        ui->vue2d->fitInView(dep->scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
+    }
+}
+
+void MainWindow::changeTypeLang(int index) {
+    if (!dep)
+        return;
+
+    TLang iL = static_cast<TLang>(index);
+
+    if (iL == L00 || iL == L11) {
+        for (auto&& num : dep->nums) {
+            num.tlang = iL;
+        }
+    } else {
+        for (auto&& num : dep->nums) {
+            if (num.tlang != L10 && num.tlang != L01)
+                num.tlang = L10;
+        }
+    }
+    couleurAssemble();
+}
+
 void MainWindow::exporter()
 {
     if (!dep)
         return;
 
+    qreal s = 5.0f / 1.76f;
+
     QSvgGenerator SG;
-    SG.setSize(QSize(210, 297));
-    SG.setViewBox(QRect(0, 0, 210, 297));
+    SG.setSize(QSize(210*s, 297*s));
+    SG.setViewBox(QRect(0, 0, 210*s, 297*s));
     SG.setTitle("EXPORT SVG");
     //SG.setDescription(tr("An SVG drawing created by the SVG Generator "
     //                            "Example provided with Qt."));
@@ -185,61 +239,87 @@ void MainWindow::exporter()
     QBuffer buffer;
     SG.setOutputDevice(&buffer);
 
-    QPen pen = QPen();
+    QPen penC = QPen(QBrush(Qt::red), 0.2, Qt::SolidLine);
+    QPen penM = QPen(QBrush(Qt::darkRed), 0.1, Qt::DashLine);
+    QPen pen0 = QPen(QBrush(Qt::black), 0.1, Qt::NoPen);
+    QPen penV = QPen(QBrush(Qt::green), 0.1, Qt::DashDotDotLine);
+    QPen penN = QPen(QBrush(Qt::blue), 0.2, Qt::SolidLine);
 
     painter.begin(&SG);
-    painter.setFont(dep->tf);
+    QFont tf = QFont("Bitstream Vera Sans", 7*s);
+    tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
+    painter.setFont(tf);
+
+    QTransform tS;
+    tS.scale(s, s);
+
     for (auto && pool : dep->pool) {
         for (auto && piece : pool.pieces) {
             TriangleItem *prem = dep->t2d[piece.premId];
             for (auto && ligne : prem->childItems()) {
                 TriangleLigneItem *tli = qgraphicsitem_cast<TriangleLigneItem*>(ligne);
                 if (tli) {
-                    QPointF p1 = tli->mapToScene(tli->line().p1());
-                    QPointF p2 = tli->mapToScene(tli->line().p2());
-                    if (tli->ligne->nb == 1) {
+                    QPointF p1 = tS.map(prem->mapToScene(tli->mapToParent(tli->line().p1())));
+                    QPointF p2 = tS.map(prem->mapToScene(tli->mapToParent(tli->line().p2())));
+                    bool lb = tli->data(1).toBool();
+                    if (tli->ligne->nb == 1 && !lb) {
                         // LIGNE DE COUPE
-                        pen.setColor(Qt::red);
-                        pen.setStyle(Qt::SolidLine);
+                        painter.setPen(penC);
                     } else {
                         // PLI
                         if (tli->ligne->cop > 0) {
                             // PLI MONTAGNE
-                            pen.setColor(Qt::darkRed);
-                            pen.setStyle(Qt::DashLine);
+                            painter.setPen(penM);
                         } else if (tli->ligne->cop < 0) {
                             // PLI VALLEE
-                            pen.setColor(Qt::green);
-                            pen.setStyle(Qt::DashDotLine);
+                            painter.setPen(penV);
                         } else {
-                            pen.setColor(Qt::black);
-                            pen.setStyle(Qt::NoPen);
+                            painter.setPen(tli->ligne->nb == 1 ? penC : pen0);
                         }
                     }
-                    painter.setPen(pen);
                     painter.drawLine(p1, p2);
 
-                    for (auto&& litxt : tli->childItems()) {
-                        QGraphicsSimpleTextItem *txti = qgraphicsitem_cast<QGraphicsSimpleTextItem*>(litxt);
-                        if (txti) {
-                            pen.setColor(Qt::blue);
-                            pen.setStyle(Qt::SolidLine);
-                            painter.setPen(pen);
-                            QPointF c = ((p1 + p2) / 2);
-                            painter.save();
-                            painter.translate(c);
-                            painter.rotate(180-tli->line().angle());
-                            QPointF b(- txti->boundingRect().width()/2, -1.8f);
-                            painter.drawText(b, txti->text());
-                            painter.restore();
-                        }
+                    continue;
+                }
+
+                TriangleLangItem *tlai = qgraphicsitem_cast<TriangleLangItem*>(ligne);
+                if (tlai) {
+                    if (tlai->data(1).toBool()) {
+                        painter.setPen(penC);
+                        painter.drawPath(tS.map(tlai->mapToScene(tlai->path())));
+                    }
+                    continue;
+                }
+
+                NumItem *numi = qgraphicsitem_cast<NumItem*>(ligne);
+                if (numi) {
+                    painter.setPen(penN);
+                    QPointF b, centre;
+                    if (numi->bLang) {
+                        centre = numi->tli->mapToScene(centroid4(lineToLang(
+                                                        numi->tli->line().p1(),
+                                                        numi->tli->line().p2()
+                                                        ).toFillPolygon()));
+                        centre = tS.map(centre);
+                        painter.save();
+                        painter.translate(centre);
+                        painter.rotate(180- numi->tli->line().angle());
+                        b = QPointF(- numi->boundingRect().width()/2, 3);
+                        painter.drawText(tS.map(b), numi->text());
+                        painter.restore();
+                    } else {
+                        centre =  tS.map(numi->tli->mapToScene(numi->tli->line().center()));
+                        painter.save();
+                        painter.translate(centre);
+                        painter.rotate(180- numi->tli->line().angle());
+                        b = QPointF(- numi->boundingRect().width()/2, -1.8f);
+                        painter.drawText(tS.map(b), numi->text());
+                        painter.restore();
                     }
                 }
             }
         }
-
     }
-
     painter.end();
 
     QFileDialog::saveFileContent(buffer.data(), "myExport.svg");
@@ -253,7 +333,7 @@ void MainWindow::nouveau()
             dep = new Depliage(this);
             leEchelle->setText(QString::number(dep->echelle,'g',2));
             ui->vue3d->setScene(dep->scene3d);
-            ui->vue2d->setScene(dep->scene2d);            
+            ui->vue2d->setScene(dep->scene2d);
             QFileInfo f(fileName);
             setWindowTitle("Deplieur [" + f.fileName() + "]");
             dep->meshModel->LoadFromObjectFile(fileContent);
@@ -286,6 +366,9 @@ void MainWindow::nouveau()
 
 void MainWindow::SelectionDansScene3D()
 {
+    if (!dep)
+        return;
+
     AfficheNbSel(dep->scene3d);
 
     dep->basculeSelectionChanged(false);
@@ -304,6 +387,9 @@ void MainWindow::SelectionDansScene3D()
 
 void MainWindow::AfficheNbSel(QGraphicsScene *scene)
 {
+    if (!dep)
+        return;
+
     int nbSel = scene->selectedItems().size();
     if (nbSel == 0) {
         statusBar()->showMessage("Aucune selection");
@@ -329,6 +415,9 @@ void MainWindow::AfficheNbSel(QGraphicsScene *scene)
 
 void MainWindow::changeCouleur(int couleur)
 {
+    if (!dep)
+        return;
+
     ui->tableCouleurs->selectRow(couleur);
 }
 
@@ -347,10 +436,16 @@ void MainWindow::changeEchelle()
                 i->setScale(n);
         }
     }
+    dep->scene2d->update();
+    vec3d d = dep->meshModel->dim.Vector_Mul(50*n);
+    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
 }
 
 void MainWindow::SelectionDansScene2D()
 {
+    if (!dep)
+        return;
+
     AfficheNbSel(dep->scene2d);
 
     dep->basculeSelectionChanged(false);
@@ -369,6 +464,9 @@ void MainWindow::SelectionDansScene2D()
 
 void MainWindow::couleurChoisie (QColor color)
 {
+    if (!dep)
+        return;
+
     if (!color.isValid())
         return;
 
@@ -409,6 +507,7 @@ void MainWindow::couleurNouveau()
 {
     if(!dep)
         return;
+
     QColorDialog *dialog = new QColorDialog();
     dialog->setOption(QColorDialog::NoEyeDropperButton);
     connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
@@ -419,6 +518,7 @@ void MainWindow::couleurSupprime()
 {
     if(!dep)
         return;
+
     int n = ui->tableCouleurs->currentRow();
 
     if (n < 1) {
@@ -452,6 +552,9 @@ void MainWindow::couleurSupprime()
 
 void MainWindow::commencePose(QList<int>*pool, int n)
 {
+    if (!dep)
+        return;
+
     Piece att;
     att.attaches.push_back(Attache(-1, pool->takeFirst()));
     int nF = att.attaches[0].vers;
@@ -492,6 +595,7 @@ void MainWindow::couleurAssemble()
 {
     if(!dep)
         return;
+
     dep->scene2d->clearSelection();
     if (ui->tableCouleurs->rowCount() < 2)
         return;
@@ -507,7 +611,6 @@ void MainWindow::couleurAssemble()
         for (auto && piece : p.attaches) {
             int wP = piece.vers;
             TriangleItem *tSource = dep->t2d[wP];
-            //tSource->setVisible(true);
             for (auto && ti : tSource->childItems()) {
                 if (ti->data(0).toInt() < 0)
                     delete(ti);
@@ -528,7 +631,7 @@ void MainWindow::couleurAssemble()
             for (auto && piece : p.attaches) {
                 int wP = piece.vers;
                 TriangleItem *tSource = dep->t2d[wP];
-                //tSource->setFiltersChildEvents(true);
+                tSource->setFiltersChildEvents(true);
                 if (piece.de == -1){
                     idParentCourant = piece.vers;
                     QPointF tpos = tSource->scenePos();
@@ -614,35 +717,73 @@ void MainWindow::couleurAssemble()
         }
     }
 
+    bool lb;
     for (auto&& P : dep->pool[n].pieces) {
         TriangleItem *ti0 = dep->t2d[P.attaches[0].vers];
         for (auto&& L : P.lignes) {
             TriangleLigneItem *li = new TriangleLigneItem(&L);
+            li->setData(1, QVariant::fromValue(0));
             li->setParentItem(ti0);
             if (L.nb == 1) {
                 int numC;
                 Nums num1 = Nums(L.id1, L.id2);
                 Nums num2 = Nums(L.id2, L.id1);
+                switch (cbLanguettes->currentIndex()) {
+                case 0:
+                case 1:
+                    lb = false;
+                    break;
+                case 2:
+                    lb = true;
+                }
+
+                //QPointF cLai(0,0);
+                TriangleLangItem *pLai = nullptr;
                 if (dep->nums.contains(num1)) {
                     numC = dep->nums[dep->nums.indexOf(num1)].num;
+                    TriangleLangItem *lai = new TriangleLangItem(&L);
+                    lai->setParentItem(ti0);
+                    //lai->setParentItem(li);
+                    lai->setData(0, QVariant::fromValue(-1));
+                    lai->setData(1, QVariant(lb));
+                    li->setData(1, QVariant(lb));
                 } else
                 if (dep->nums.contains(num2)) {
                     numC = dep->nums[dep->nums.indexOf(num2)].num;
+                    TriangleLangItem *lai = new TriangleLangItem(&L);
+                    lai->setParentItem(ti0);
+                    //lai->setParentItem(li);
+                    lai->setData(0, QVariant::fromValue(-1));
+                    lai->setData(1, QVariant(lb));
+                    li->setData(1, QVariant(lb));
                 } else {
                     numC = dep->nums.size();
                     num1.num = numC;
+                    switch (cbLanguettes->currentIndex()) {
+                    case 1 :
+                        num1.tlang = L10;
+                        lb = true;
+                        break;
+                    case 2 :
+                        num1.tlang = L11;
+                        lb = true;
+                        break;
+                    case 0 :
+                        num1.tlang = L00;
+                        lb = false;
+                    }
                     dep->nums.append(num1);
+                    TriangleLangItem *lai = new TriangleLangItem(&L);
+                    lai->setParentItem(ti0);
+                    //lai->setParentItem(li);
+                    lai->setData(0, QVariant::fromValue(-1));
+                    lai->setData(1, QVariant(lb));
+                    li->setData(1, QVariant(lb));
+                    pLai = lai;
                 }
+                NumItem *numi = new NumItem(li, pLai, numC, dep->dYt, lb);
+                numi->setParentItem(ti0);
 
-                QGraphicsSimpleTextItem *ti = new QGraphicsSimpleTextItem(QString::number(numC));
-                ti->setFont(dep->tf);
-                ti->setParentItem(li);
-                QPointF b = QPointF(ti->boundingRect().width()/2, ti->boundingRect().height()+ dep->dYt);
-                ti->setTransformOriginPoint(b);
-                ti->setRotation(180-li->line().angle());
-                QPointF c = li->line().center() - b;
-                ti->setPos(c);
-                ti->setZValue(3);
             }
         }
     }
@@ -699,6 +840,7 @@ void MainWindow::tourner3DXD()
 {
     if(!dep)
         return;
+
     dep->fThetaX += dep->fPas;
     dep->dessineModele();
 }
@@ -707,6 +849,7 @@ void MainWindow::tourner3DXG()
 {
     if(!dep)
         return;
+
     dep->fThetaX -= dep->fPas;
     dep->dessineModele();
 }
@@ -715,6 +858,7 @@ void MainWindow::tourner3DYD()
 {
     if(!dep)
         return;
+
     dep->fThetaY += dep->fPas;
     dep->dessineModele();
 }
@@ -723,6 +867,7 @@ void MainWindow::tourner3DYG()
 {
     if(!dep)
         return;
+
     dep->fThetaY -= dep->fPas;
     dep->dessineModele();
 }
@@ -731,6 +876,7 @@ void MainWindow::tourner3DZD()
 {
     if(!dep)
         return;
+
     dep->fThetaZ += dep->fPas;
     dep->dessineModele();
 }
@@ -739,6 +885,7 @@ void MainWindow::tourner3DZG()
 {
     if(!dep)
         return;
+
     dep->fThetaZ -= dep->fPas;
     dep->dessineModele();
 }
@@ -747,6 +894,7 @@ void MainWindow::zoom3DPlus()
 {
     if(!dep)
         return;
+
     ui->vue3d->scale(1.1f, 1.1f);
 }
 
@@ -754,6 +902,7 @@ void MainWindow::zoom3DMoins()
 {
     if(!dep)
         return;
+
     ui->vue3d->scale(0.9f, 0.9f);
 }
 
@@ -761,6 +910,7 @@ void MainWindow::zoom2DPlus()
 {
     if(!dep)
         return;
+
     ui->vue2d->scale(1.1f, 1.1f);
 }
 
@@ -768,24 +918,23 @@ void MainWindow::zoom2DMoins()
 {
     if(!dep)
         return;
-    ui->vue2d->scale(0.9f, 0.9f);
-}
 
-QPointF centroid(QPolygonF p) {
-return QPointF(
-    (p[0].x() + p[1].x() + p[2].x()) / 3,
-    (p[0].y() + p[1].y() + p[2].y()) / 3
-    );
+    ui->vue2d->scale(0.9f, 0.9f);
 }
 
 void MainWindow::Rot2D(int a) {
     if (!dep)
         return;
+
     auto sI = dep->scene2d->selectedItems();
     if (sI.size() < 1)
         return;
 
-    TriangleItem *ti = dep->t2d[sI[0]->data(0).toInt()];
+    int ni = sI[0]->data(0).toInt();
+    if (ni < 0)
+        return;
+
+    TriangleItem *ti = dep->t2d[ni];
 
     QPolygonF p = ti->polygon();
     QPointF c = centroid(p);
@@ -804,27 +953,36 @@ void MainWindow::Rot2D(int a) {
 
         // tourne les enfants
         dep->t2d[ti->id]->setPolygon(tr.map(p));
-        for (auto&& i : ti->childItems()) {
-            int d = i->data(0).toInt();
-            if (d < 0) {
-                TriangleLigneItem * li = qgraphicsitem_cast<TriangleLigneItem*>(i);
-                QLineF lil = li->line();
-                li->setLine(tr.map(lil));
-                auto ci = li->childItems();
-                if (ci.size() > 0) {
-                    QPointF b = QPointF(ci[0]->boundingRect().width()/2, ci[0]->boundingRect().height() + dep->dYt);
-                    ci[0]->setTransformOriginPoint(b);
-                    ci[0]->setRotation(180-li->line().angle());
-                    QPointF c = li->line().center() - b;
-                    ci[0]->setPos(c);
 
-                }
-            } else { // TriangleItem
-                TriangleItem *te = dep->t2d[d];
+        for (auto&& i : ti->childItems()) {
+            TriangleItem *te = qgraphicsitem_cast<TriangleItem*>(i);
+            if (te) {
                 if (te->col == ti->col){
                     p = te->polygon();
                     te->setPolygon(tr.map(p));
                 }
+                continue;
+            }
+
+            TriangleLigneItem * li = qgraphicsitem_cast<TriangleLigneItem*>(i);
+            if (li) {
+                QLineF lil = li->line();
+                li->setLine(tr.map(lil));
+                continue;
+            }
+
+            TriangleLangItem * tli = qgraphicsitem_cast<TriangleLangItem*>(i);
+            if (tli) {
+                QPainterPath path;
+                path = tli->path();
+                tli->setPath(tr.map(path));
+            }
+        }
+
+        for (auto&& i : ti->childItems()) {
+            NumItem *ci = qgraphicsitem_cast<NumItem*>(i);
+            if (ci) {
+                ci->tourne();
             }
         }
     }
@@ -832,10 +990,10 @@ void MainWindow::Rot2D(int a) {
 
 void MainWindow::Rot2DPlus()
 {
-    Rot2D(5);
+    Rot2D(1);
 }
 
 void MainWindow::Rot2DMoins()
 {
-    Rot2D(-5);
+    Rot2D(-1);
 }

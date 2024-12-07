@@ -19,7 +19,6 @@ TriangleItem::TriangleItem(QColor poolColor, QPolygonF poly, int id, int col = 0
     setFlag(ItemSendsScenePositionChanges);
     estLie = false;
     estPrem = false;
-    //setVisible(false);
 }
 
 void TriangleItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -32,8 +31,6 @@ void TriangleItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         opt.state = QStyle::State_None;
     } else {
         QColor c = this->poolColor;
-        // if (estPrem)
-        //     c = c.lighter();
         c.setAlpha(235);
         if (estLie || estPrem) {
             p = QPen(c);

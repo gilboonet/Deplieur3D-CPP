@@ -395,6 +395,28 @@
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
+  <action name="actionPgPlus">
+   <property name="text">
+    <string>Pg +</string>
+   </property>
+   <property name="toolTip">
+    <string>Ajouter Page</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionPgMoins">
+   <property name="text">
+    <string>Pg -</string>
+   </property>
+   <property name="toolTip">
+    <string>Supprimer Page</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="resources.qrc"/>

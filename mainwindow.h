@@ -6,6 +6,7 @@
 
 #include <QMainWindow>
 #include <QLineEdit>
+#include <QComboBox>
 #include <QGraphicsScene>
 
 class Depliage;
@@ -30,7 +31,8 @@ private:
     Ui::MainWindow *ui;
     void commencePose(QList<int>*, int);
     void Rot2D(int);
-    QLineEdit* leEchelle;
+    QLineEdit *leEchelle;
+    QComboBox *cbLanguettes;
 
 private slots:
     void nouveau();
@@ -62,6 +64,9 @@ private slots:
     void AfficheNbSel(QGraphicsScene *);
     void changeCouleur(int);
     void changeEchelle();
+    void changeTypeLang(int);
+    void ajoutePage();
+    void supprimePage();
 
 public slots:
     void SelectionDansScene3D();

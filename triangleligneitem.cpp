@@ -8,19 +8,23 @@ TriangleLigneItem::TriangleLigneItem(Ligne *ligne) {
     setZValue(3);
     setData(0, QVariant::fromValue(-1));
     setFlag(QGraphicsItem::ItemIsSelectable, true);
+    //setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
     setAcceptHoverEvents(true);
 }
 
 void TriangleLigneItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
     QPen p = QPen();
-    p.setColor(ligne->nb == 1 ? Qt::black : ligne->cop < 1 ? Qt::darkRed : Qt::green);
-    if (ligne->nb == 1)
+
+    bool lb = data(1).toBool();
+
+    if (ligne->nb == 1 && !lb) {
+        p.setColor(Qt::black);
         p.setStyle(Qt::SolidLine);
-    else if (ligne->cop == 0)
-        p.setStyle(Qt::NoPen);
-    else
-        p.setStyle(ligne->cop > 0 ? Qt::DashLine : Qt::DashDotLine);
+    } else {
+        p.setColor(ligne->cop > 0 ? Qt::darkRed : ligne->cop < 0 ? Qt::green : Qt::black);
+        p.setStyle(ligne->cop > 0 ? Qt::DashLine : ligne->cop < 0 ? Qt::DashDotDotLine : Qt::NoPen);
+    }
 
     painter->setPen(p);
     painter->drawLine(line());
