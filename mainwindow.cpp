@@ -65,9 +65,16 @@ void MainWindow::changeEchelle()
     if (ok) {
         dep.echelle = n;
         for (auto && i : scene2d->items()) {
-            PiecePolygonItem *p = qgraphicsitem_cast<PiecePolygonItem*>(i);
-            if (p)
-                i->setScale(n);
+            TriangleItem2d *t = qgraphicsitem_cast<TriangleItem2d*>(i);
+            if (t) {
+                QTransform transform;
+                transform.scale(n, n);
+                t->setPolygon(transform.map(t->polygon()));
+                //t->setScale(n);
+            }
+            //PiecePolygonItem *p = qgraphicsitem_cast<PiecePolygonItem*>(i);
+            //if (p)
+            //    i->setScale(n);
         }
         piecesMAJ();
     }
@@ -402,20 +409,20 @@ void MainWindow::exporte () {
     QByteArray svgRoot;
 
     qreal s = 5.0f / 1.76f;
-    QTransform tSPage;
-    tSPage.scale(s, s);
+    //QTransform tSPage;
+    //tSPage.scale(s, s);
+    //s *= dep.echelle;
+    QTransform tS;
+    tS.scale(s, s);
 
     root.set_attr("width", QString("%1mm").arg(dep.dimPage.x()).toStdString());
     root.set_attr("height", QString("%1mm").arg(dep.dimPage.y()).toStdString());
-    QPoint scaledPageDim = tSPage.map(dep.dimPage);
+    QPoint scaledPageDim = tS.map(dep.dimPage);
     root.set_attr("viewBox", QString("0 0 %1 %2").arg(scaledPageDim.x()).arg(scaledPageDim.y()).toStdString());
 
     // Basic CSS support
     root.style("path").set_attr("fill", "none");
 
-    s *= dep.echelle;
-    QTransform tS;
-    tS.scale(s, s);
 
     SVG::Group *gPage, *gNums;
     SVG::Path *chCoupe, *chPliM, *chPliV;
