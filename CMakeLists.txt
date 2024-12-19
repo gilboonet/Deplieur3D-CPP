@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Deplieur VERSION 0.1)
+project(Deplieur VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Svg)
+#find_package(Qt6 REQUIRED COMPONENTS Svg)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
@@ -27,21 +27,21 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(Deplieur
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        depliage.h depliage.cpp
-        facette.cpp facette.h
-        mat4x4.cpp mat4x4.h
-        mesh.cpp mesh.h
         resources.qrc
-        triangleitem.cpp triangleitem.h
-        vec3d.cpp vec3d.h
-        voisin.h voisin.cpp
+        depliage.h depliage.cpp
+        mat4x4.h mat4x4.cpp
+        vec3d.h vec3d.cpp
         triangle2d.h triangle2d.cpp
-        structures.h
-        structures.cpp
-        deplieurscene.h deplieurscene.cpp
-        triangleligneitem.h triangleligneitem.cpp
-        trianglelangitem.h trianglelangitem.cpp
-        numitem.h numitem.cpp
+        depliagescene.h depliagescene.cpp
+        depliagevue3d.h depliagevue3d.cpp
+        triangleitem2d.h triangleitem2d.cpp
+        triangleitem3d.h triangleitem3d.cpp
+        facette.h facette.cpp
+        depliagevue2d.h depliagevue2d.cpp
+        piecepolygonitem.h piecepolygonitem.cpp
+        pieceligneitem.h pieceligneitem.cpp
+        piecelangitem.h piecelangitem.cpp
+        piecenumitem.h piecenumitem.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Deplieur APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -55,7 +55,7 @@ else()
             ${PROJECT_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
-    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(Deplieur
             ${PROJECT_SOURCES}
@@ -66,10 +66,7 @@ else()
 endif()
 
 target_link_libraries(Deplieur PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(Deplieur PRIVATE Qt6::Svg)
-#set_property(TARGET Deplieur PROPERTY AUTOMOC ON)
-
-#target_link_options(Deplieur PUBLIC -sASYNCIFY -Os)
+#target_link_libraries(Deplieur PRIVATE Qt6::Svg)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

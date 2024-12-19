@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>1024</width>
     <height>600</height>
    </rect>
   </property>
@@ -88,7 +88,7 @@
            <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
           </property>
           <property name="columnCount">
-           <number>3</number>
+           <number>4</number>
           </property>
           <attribute name="horizontalHeaderVisible">
            <bool>false</bool>
@@ -105,6 +105,7 @@
           <column/>
           <column/>
           <column/>
+          <column/>
          </widget>
         </item>
        </layout>
@@ -112,7 +113,7 @@
       <widget class="QWidget" name="verticalLayoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout3D">
         <item>
-         <widget class="QGraphicsView" name="vue3d">
+         <widget class="DepliageVue3d" name="vue3d">
           <property name="font">
            <font>
             <family>Small Fonts</family>
@@ -124,7 +125,7 @@
            <enum>QFrame::Shape::WinPanel</enum>
           </property>
           <property name="dragMode">
-           <enum>QGraphicsView::DragMode::RubberBandDrag</enum>
+           <enum>QGraphicsView::DragMode::NoDrag</enum>
           </property>
          </widget>
         </item>
@@ -133,12 +134,12 @@
       <widget class="QWidget" name="verticalLayoutWidget_3">
        <layout class="QVBoxLayout" name="verticalLayout2D">
         <item>
-         <widget class="QGraphicsView" name="vue2d">
+         <widget class="DepliageVue2d" name="vue2d">
           <property name="frameShape">
            <enum>QFrame::Shape::WinPanel</enum>
           </property>
           <property name="dragMode">
-           <enum>QGraphicsView::DragMode::RubberBandDrag</enum>
+           <enum>QGraphicsView::DragMode::ScrollHandDrag</enum>
           </property>
          </widget>
         </item>
@@ -150,12 +151,18 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNouveau">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/resources/note_add.png</normaloff>:/resources/note_add.png</iconset>
    </property>
    <property name="text">
     <string>Nouveau</string>
+   </property>
+   <property name="toolTip">
+    <string>Nouveau projet</string>
    </property>
    <property name="font">
     <font>
@@ -323,7 +330,7 @@
     <string>+</string>
    </property>
    <property name="toolTip">
-    <string>Ajouter Couleur</string>
+    <string>Ajoute Couleur</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -334,7 +341,7 @@
     <string>-</string>
    </property>
    <property name="toolTip">
-    <string>Supprimer Couleur</string>
+    <string>Supprime Couleur</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -345,7 +352,7 @@
     <string>*</string>
    </property>
    <property name="toolTip">
-    <string>Assembler</string>
+    <string>Assemble</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -400,7 +407,7 @@
     <string>Pg +</string>
    </property>
    <property name="toolTip">
-    <string>Ajouter Page</string>
+    <string>Ajoute Page</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -411,13 +418,76 @@
     <string>Pg -</string>
    </property>
    <property name="toolTip">
-    <string>Supprimer Page</string>
+    <string>Supprime Page</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionBasculeCouleurs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>C</string>
+   </property>
+   <property name="toolTip">
+    <string>Bascule Couleurs</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionBascule3D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>3D</string>
+   </property>
+   <property name="toolTip">
+    <string>Bascule vue 3d</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionBascule2D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>2D</string>
+   </property>
+   <property name="toolTip">
+    <string>Bascule vue 2D</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DepliageVue3d</class>
+   <extends>QGraphicsView</extends>
+   <header>C:\Users\gilbe\Documents\dev\C++\Deplieur\depliagevue3d.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DepliageVue2d</class>
+   <extends>QGraphicsView</extends>
+   <header>C:\Users\gilbe\Documents\dev\C++\Deplieur\depliagevue2d.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resources.qrc"/>
  </resources>

@@ -1,13 +1,13 @@
-//--------------------------------------------------//
-// from https://www.youtube.com/watch?v=ih20l3pJoeU //
-//--------------------------------------------------//
+//---------------------------------------------------------
+// from https://www.youtube.com/watch?v=ih20l3pJoeU
+//---------------------------------------------------------
 #include "mat4x4.h"
 
 #include <qmath.h>
+//---------------------------------------------------------
+mat4x4::mat4x4 () {}
 
-mat4x4::mat4x4() {}
-
-vec3d mat4x4::Matrix_MultiplyVector(mat4x4& m, vec3d& i) {
+vec3d mat4x4::Matrix_MultiplyVector (mat4x4& m, vec3d& i) {
     vec3d v;
     v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
     v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
@@ -16,7 +16,7 @@ vec3d mat4x4::Matrix_MultiplyVector(mat4x4& m, vec3d& i) {
     return v;
 }
 
-mat4x4 mat4x4::Matrix_MakeIdentity() {
+mat4x4 mat4x4::Matrix_MakeIdentity () {
     mat4x4 matrix;
     matrix.m[0][0] = 1.0f;
     matrix.m[1][1] = 1.0f;
@@ -25,7 +25,7 @@ mat4x4 mat4x4::Matrix_MakeIdentity() {
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MakeRotationX(float fAngleRad) {
+mat4x4 mat4x4::Matrix_MakeRotationX (float fAngleRad) {
     mat4x4 matrix;
     matrix.m[0][0] = 1.0f;
     matrix.m[1][1] = cosf(fAngleRad);
@@ -36,8 +36,7 @@ mat4x4 mat4x4::Matrix_MakeRotationX(float fAngleRad) {
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MakeRotationY(float fAngleRad)
-{
+mat4x4 mat4x4::Matrix_MakeRotationY (float fAngleRad) {
     mat4x4 matrix;
     matrix.m[0][0] = cosf(fAngleRad);
     matrix.m[0][2] = sinf(fAngleRad);
@@ -48,8 +47,7 @@ mat4x4 mat4x4::Matrix_MakeRotationY(float fAngleRad)
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MakeRotationZ(float fAngleRad)
-{
+mat4x4 mat4x4::Matrix_MakeRotationZ (float fAngleRad) {
     mat4x4 matrix;
     matrix.m[0][0] = cosf(fAngleRad);
     matrix.m[0][1] = sinf(fAngleRad);
@@ -60,8 +58,7 @@ mat4x4 mat4x4::Matrix_MakeRotationZ(float fAngleRad)
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MakeTranslation(float x, float y, float z)
-{
+mat4x4 mat4x4::Matrix_MakeTranslation (float x, float y, float z) {
     mat4x4 matrix;
     matrix.m[0][0] = 1.0f;
     matrix.m[1][1] = 1.0f;
@@ -73,8 +70,7 @@ mat4x4 mat4x4::Matrix_MakeTranslation(float x, float y, float z)
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MakeProjection(float fFovDegrees, float fAspectRatio, float fNear, float fFar)
-{
+mat4x4 mat4x4::Matrix_MakeProjection (float fFovDegrees, float fAspectRatio, float fNear, float fFar) {
     float fFovRad = 1.0f / tanf(fFovDegrees * 0.5f / 180.0f * 3.14159f);
     mat4x4 matrix;
     matrix.m[0][0] = fAspectRatio * fFovRad;
@@ -86,8 +82,7 @@ mat4x4 mat4x4::Matrix_MakeProjection(float fFovDegrees, float fAspectRatio, floa
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_MultiplyMatrix(mat4x4& m1, mat4x4& m2)
-{
+mat4x4 mat4x4::Matrix_MultiplyMatrix (mat4x4& m1, mat4x4& m2) {
     mat4x4 matrix;
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
@@ -98,8 +93,7 @@ mat4x4 mat4x4::Matrix_MultiplyMatrix(mat4x4& m1, mat4x4& m2)
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_PointAt(vec3d& pos, vec3d& target, vec3d& up)
-{
+mat4x4 mat4x4::Matrix_PointAt (vec3d& pos, vec3d& target, vec3d& up) {
     // Calculate new forward direction
     vec3d newForward = target.Vector_Sub(pos);
     newForward = newForward.Vector_Normalise();
@@ -137,8 +131,8 @@ mat4x4 mat4x4::Matrix_PointAt(vec3d& pos, vec3d& target, vec3d& up)
     return matrix;
 }
 
-mat4x4 mat4x4::Matrix_QuickInverse(mat4x4& m) // Only for Rotation/Translation Matrices
-{
+mat4x4 mat4x4::Matrix_QuickInverse (mat4x4& m) {
+    // Only for Rotation/Translation Matrices
     mat4x4 matrix;
     matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
     matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;

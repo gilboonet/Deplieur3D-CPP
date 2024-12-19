@@ -1,49 +1,26 @@
+// Données du projet de dépliage
+//---------------------------------------------------------
 #include "depliage.h"
-
-#include <QGraphicsView>
-
-Ligne::Ligne() {}
-Ligne::Ligne(QPointF p1, QPointF p2, int id1, int id2, int cop) :
-    p1(p1), p2(p2), id1(id1), id2(id2), cop(cop), nb(1)
-{}
-
-Depliage::Depliage(MainWindow* p)
-{   // CONSTRUCTEUR
-    parent = QPointer<MainWindow>(p);
-    if (scene3d == nullptr) {
-        scene3d = new DeplieurScene(parent);
-    }
-    if (scene2d == nullptr) {
-        scene2d = new DeplieurScene(parent);
-        //scene2d->setFont(tf);
-    }
-    meshModel = new Mesh;
-
-    fThetaX = 0.0f;
-    fThetaY = 0.0f;
-    fThetaZ = 0.0f;
-
-#ifdef Q_OS_WASM
-    dYt = -2;
-#else
-    dYt = -1;
-#endif
-
-    // tf = QFont("Bitstream Vera Sans", 8);
-    // tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
+#include "mat4x4.h"
+#include "triangleitem3d.h"
+//---------------------------------------------------------
+// Constructeur
+Depliage::Depliage () {
+    fThetaX = 0;
+    fThetaY = 0;
+    fThetaZ = 0;
+    dYt = 0;
+    faces.clear();
+    prochainNum = 0;
+    nums.clear();
+    echelle = 1;
+    ModeleOK = false;
+    typeLang = 0;
+    dimPage = QPoint(210, 297);
 }
 
-void Depliage::dessineModele()
-{
-    if (!meshModel->faces.empty())
-    {
-        // sauver selection
-        sauveSel.clear();
-        for (auto&& s: scene2d->selectedItems()) {
-            int i = s->data(0).toInt();
-            sauveSel.push_back(i);
-        }
-
+void Depliage::dessineModele (DepliageScene *scene3d) {
+    if (!faces.empty()) {
         scene3d->clear();
 
         // Set up rotation matrices
@@ -51,7 +28,7 @@ void Depliage::dessineModele()
 
         // Projection Matrix
         mat4x4 matProj;
-        matProj = matProj.Matrix_MakeProjection(90.0f, 1.0f, 0.1f, 1200.0f);
+        matProj = matProj.Matrix_MakeProjection(90.0f, 1.0f, 0.1f, 2000.0f);
 
         matRotZ = matRotZ.Matrix_MakeRotationZ(fThetaZ);
         matRotY = matRotY.Matrix_MakeRotationY(fThetaY);
@@ -84,12 +61,11 @@ void Depliage::dessineModele()
         matView = matView.Matrix_QuickInverse(matCamera);
 
         // Store triagles for rastering later
-        std::vector<facette> vecTrianglesToRaster;
+        QList<Facette> vecTrianglesToRaster;
 
         // Draw Triangles
-        for (auto &tri : meshModel->faces)
-        {
-            facette triProjected, triTransformed, triViewed;
+        for (auto &tri : faces) {
+            Facette triProjected, triTransformed, triViewed;
 
             // World Matrix Transform
             triTransformed = tri;
@@ -113,104 +89,101 @@ void Depliage::dessineModele()
             normal = normal.Vector_Normalise();
 
             // Get Ray from triangle to camera
-            //vec3d vCameraRay = triTransformed.p[0].Vector_Sub(vCamera);
+            vec3d vCameraRay = triTransformed.p[0].Vector_Sub(vCamera);
             // If ray is aligned with normal, then triangle is visible
-            //if (normal.Vector_DotProduct(vCameraRay) < 0.0f)
-            //{
-            // Illumination
-            vec3d light_direction = { 0.0f, 1.0f, -1.0f };
-            light_direction = light_direction.Vector_Normalise();
+            if (normal.Vector_DotProduct(vCameraRay) < 0.0f) {
+                // Illumination
+                vec3d light_direction = { 0.0f, 1.0f, -1.0f };
+                light_direction = light_direction.Vector_Normalise();
 
-            // How "aligned" are light direction and triangle surface normal?
-            //float dp = std::max(0.1f, Vector_DotProduct(light_direction, normal));
+                // How "aligned" are light direction and triangle surface normal?
+                //float dp = std::max(0.1f, Vector_DotProduct(light_direction, normal));
 
-            // Convert World Space --> View Space
-            triViewed = triTransformed;
-            triViewed.p[0] = matView.Matrix_MultiplyVector(matView, triTransformed.p[0]);
-            triViewed.p[1] = matView.Matrix_MultiplyVector(matView, triTransformed.p[1]);
-            triViewed.p[2] = matView.Matrix_MultiplyVector(matView, triTransformed.p[2]);
-            //triViewed.col = triTransformed.col;
-            //triViewed.id = triTransformed.id;
+                // Convert World Space --> View Space
+                triViewed = triTransformed;
+                triViewed.p[0] = matView.Matrix_MultiplyVector(matView, triTransformed.p[0]);
+                triViewed.p[1] = matView.Matrix_MultiplyVector(matView, triTransformed.p[1]);
+                triViewed.p[2] = matView.Matrix_MultiplyVector(matView, triTransformed.p[2]);
+                //triViewed.col = triTransformed.col;
+                //triViewed.id = triTransformed.id;
 
-            // Clip Viewed Triangle against near plane, this could form two additional
-            // additional triangles.
-            int nClippedTriangles = 0;
-            facette clipped[2];
-            nClippedTriangles = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
+                // Clip Viewed Triangle against near plane, this could form two additional
+                // additional triangles.
+                int nClippedTriangles = 0;
+                Facette clipped[2];
+                nClippedTriangles = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f },
+                                                                triViewed, clipped[0], clipped[1]);
 
-            // We may end up with multiple triangles from the clip, so project as
-            // required
-            for (int n = 0; n < nClippedTriangles; n++)
-            {
-                // Project triangles from 3D --> 2D
-                triProjected = triViewed;
-                triProjected.p[0] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[0]);
-                triProjected.p[1] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[1]);
-                triProjected.p[2] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[2]);
-                //triProjected.col = clipped[n].col;
-                //triProjected.id = clipped[n].id;
+                // We may end up with multiple triangles from the clip, so project as
+                // required
+                for (int n = 0; n < nClippedTriangles; n++) {
+                    // Project triangles from 3D --> 2D
+                    triProjected = triViewed;
+                    triProjected.p[0] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[0]);
+                    triProjected.p[1] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[1]);
+                    triProjected.p[2] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[2]);
+                    //triProjected.col = clipped[n].col;
+                    //triProjected.id = clipped[n].id;
 
-                // Scale into view, we moved the normalising into cartesian space
-                // out of the matrix.vector function from the previous videos, so
-                // do this manually
-                triProjected.p[0] = triProjected.p[0].Vector_Div(triProjected.p[0].w);
-                triProjected.p[1] = triProjected.p[1].Vector_Div(triProjected.p[1].w);
-                triProjected.p[2] = triProjected.p[2].Vector_Div(triProjected.p[2].w);
+                    // Scale into view, we moved the normalising into cartesian space
+                    // out of the matrix.vector function from the previous videos, so
+                    // do this manually
+                    triProjected.p[0] = triProjected.p[0].Vector_Div(triProjected.p[0].w);
+                    triProjected.p[1] = triProjected.p[1].Vector_Div(triProjected.p[1].w);
+                    triProjected.p[2] = triProjected.p[2].Vector_Div(triProjected.p[2].w);
 
-                // X/Y are inverted so put them back
-                triProjected.p[0].x *= -1.0f;
-                triProjected.p[1].x *= -1.0f;
-                triProjected.p[2].x *= -1.0f;
-                triProjected.p[0].y *= -1.0f;
-                triProjected.p[1].y *= -1.0f;
-                triProjected.p[2].y *= -1.0f;
+                    // X/Y are inverted so put them back
+                    triProjected.p[0].x *= -1.0f;
+                    triProjected.p[1].x *= -1.0f;
+                    triProjected.p[2].x *= -1.0f;
+                    triProjected.p[0].y *= -1.0f;
+                    triProjected.p[1].y *= -1.0f;
+                    triProjected.p[2].y *= -1.0f;
 
-                // Offset verts into visible normalised space
-                vec3d vOffsetView = { 1,1,0 };
-                triProjected.p[0] = triProjected.p[0].Vector_Add(vOffsetView);
-                triProjected.p[1] = triProjected.p[1].Vector_Add(vOffsetView);
-                triProjected.p[2] = triProjected.p[2].Vector_Add(vOffsetView);
-                triProjected.p[0].x *= 600.0f;
-                triProjected.p[0].y *= 600.0f;
-                triProjected.p[1].x *= 600.0f;
-                triProjected.p[1].y *= 600.0f;
-                triProjected.p[2].x *= 600.0f;
-                triProjected.p[2].y *= 600.0f;
+                    // Offset verts into visible normalised space
+                    vec3d vOffsetView = { 1,1,0 };
+                    triProjected.p[0] = triProjected.p[0].Vector_Add(vOffsetView);
+                    triProjected.p[1] = triProjected.p[1].Vector_Add(vOffsetView);
+                    triProjected.p[2] = triProjected.p[2].Vector_Add(vOffsetView);
+                    triProjected.p[0].x *= 1000.0f;
+                    triProjected.p[0].y *= 1000.0f;
+                    triProjected.p[1].x *= 1000.0f;
+                    triProjected.p[1].y *= 1000.0f;
+                    triProjected.p[2].x *= 1000.0f;
+                    triProjected.p[2].y *= 1000.0f;
 
-                // Store triangle for sorting
-                vecTrianglesToRaster.push_back(triProjected);
+                    // Store triangle for sorting
+                    vecTrianglesToRaster.push_back(triProjected);
+                }
             }
-            //}
         }
 
         // Sort triangles from back to front
-        sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](facette& t1, facette& t2)
-             {
-                 float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
-                 float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
-                 return z1 > z2;
-             });
+        std::sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Facette& t1, Facette& t2)
+        {
+            float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
+            float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+            return z1 > z2;
+        });
 
         // Loop through all transformed, viewed, projected, and sorted triangles
-        for (auto& triToRaster : vecTrianglesToRaster)
-        {
+        for (auto& triToRaster : vecTrianglesToRaster) {
             // Clip triangles against all four screen edges, this could yield
             // a bunch of triangles, so create a queue that we traverse to
             //  ensure we only test new triangles generated against planes
-            facette clipped[2];
-            std::list<facette> listTriangles;
+            Facette clipped[2];
+            std::list<Facette> listTriangles;
 
             // Add initial triangle
             listTriangles.push_back(triToRaster);
             size_t nNewTriangles = 1;
 
-            for (int p = 0; p < 4; p++)
-            {
+            for (int p = 0; p < 4; p++) {
                 int nTrisToAdd = 0;
                 while (nNewTriangles > 0)
                 {
                     // Take triangle from front of queue
-                    facette test = listTriangles.front();
+                    Facette test = listTriangles.front();
                     listTriangles.pop_front();
                     nNewTriangles--;
 
@@ -222,10 +195,10 @@ void Depliage::dessineModele()
                     clipped[0] = triToRaster;
                     switch (p)
                     {
-                    case 0:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-                    case 1:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 0.0f, 1199.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+                    case 0: nTrisToAdd = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+                    case 1:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 0.0f, 1999.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
                     case 2:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-                    case 3:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 1199.0f, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+                    case 3:	nTrisToAdd = clipped[0].ClipAgainstPlane({ 1999.0f, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
                     }
 
                     // Clipping may yield a variable number of triangles,
@@ -239,112 +212,108 @@ void Depliage::dessineModele()
             }
 
             // Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
-            for (auto& t : listTriangles)
-            {
-                QPolygonF poly;
-                poly << t.p[0].toPointF() << t.p[1].toPointF() << t.p[2].toPointF();
-
-                TriangleItem *ti = new TriangleItem(pool[t.col].couleur, poly, t.id, t.col);
+            for (auto& t : listTriangles) {
+                TriangleItem3d *ti = new TriangleItem3d(scene3d, pieces[t.col].couleur,
+                                                        t.toPolygon(), t.id, t.col);
                 ti->setVisible(true);
-                basculeSelectionChanged(false);
-                for(int s: sauveSel) {
-                    if (s == t.id) {
-                        ti->setSelected(true);
-                        break;
-                    }
-                }
-                basculeSelectionChanged(true);
-                scene3d->addItem(ti);
             }
             scene3d->update();
         }
     }
 }
 
-QGraphicsRectItem* Depliage::ajoutePage()
-{
-    QGraphicsRectItem * page;
-    QPen pPage;
+void Depliage::creeFaces2d (DepliageScene *scene2d) {
+    // Crée les facettes 2d servant pour le gabarit
+    QTransform transform;
+    qreal px2cm = 50.0f;
+    transform.scale(px2cm, px2cm);
 
-    int p = static_cast<int>(pages.size());
-    page = new QGraphicsRectItem(p*220, 0, 210 ,297);
-
-    QGraphicsPolygonItem * marge = new QGraphicsPolygonItem();
-    marge->setPen(QPen(QBrush(Qt::red), 3));
-    page->setZValue(0);
-    QPolygonF pMarge;
-
-    qreal a = 9;
-    qreal b = 24;
-    qreal c = 118;
-    qreal d = 205;
-
-    pMarge << QPoint(a + b, a + b + d + b + a)
-           << QPoint(a + b, a + b + d + b)
-           << QPoint(a, a + b + d + b)
-           << QPoint(a, a + b + d)
-           << QPointF(0, a + b + d)
-           << QPointF(0, a + b)
-           << QPointF(a, a + b)
-           << QPointF(a, a)
-           << QPointF(a + b, a)
-           << QPointF(a + b, 0)
-           << QPointF(a + b + c, 0)
-           << QPointF(a + b + c, a)
-           << QPointF(a + b + c + b, a)
-           << QPointF(a + b + c + b, a + b)
-           << QPointF(a + b + c + b + a, a + b)
-           << QPointF(a + b + c + b + a, a + b + d)
-           << QPointF(a + b + c + b, a + b + d)
-           << QPointF(a + b + c + b, a + b + d + b)
-           << QPointF(a + b + c, a + b + d + b)
-           << QPointF(a + b + c, a + b + d + b + a);
-    marge->setPolygon(pMarge);
-    marge->setParentItem(page);
-    QPointF delta = {
-        page->rect().width() - (a+b+c+b+a),
-        page->rect().height() -(a+b+d+b+a) };
-    delta /= 2;
-    marge->setPos(delta+ QPoint(220 *p, 0));
-
-    page->setData(0, QVariant(p));
-    pPage = QPen(Qt::blue);
-    pPage.setWidth(3);
-    page->setPen(pPage);
-    page->setBrush(QBrush(Qt::white));
-    pages.push_back(page);
-    scene2d->addItem(page);
-
-    return page;
-}
-
-void Depliage::creeFaces2d()
-{
-    ajoutePage();
-    TriangleItem *gp;
-    for (auto&& t : meshModel->faces) {
-        Triangle2d t2 = t.d2ize();
-        QPolygonF p;
-        p << t2.a *50 << t2.b *50 << t2.c *50;
-        p.translate(-p.boundingRect().left(), -p.boundingRect().top());
-        gp = new TriangleItem(this->pool[t.col].couleur , p, t.id, t.col);
-        gp->setZValue(-2);
-        t2d.push_back(gp);
-        scene2d->addItem(gp);
+    scene2d->clear();
+    for (auto&& face : faces) {
+        QPolygonF poly = transform.map(face.triangle2d.toPolygon());
+        poly.translate(-poly.boundingRect().left(), -poly.boundingRect().top());
+        face.triangleItem = new TriangleItem2d(scene2d, pieces[face.col].couleur , poly, face.id, face.col);
     }
-    QList<QGraphicsView*> v = scene2d->views();
-    v.first()->fitInView(scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
+    scene2d->update();
 }
 
-void Depliage::trouveVoisinage()
-{
+bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
+    auto convsf = [](QString el)
+    {
+        QString s(el);
+        size_t f = s.indexOf("/");
+        if (f > 0) {
+            s.truncate(f);
+        }
+        return s.toInt() - 1;
+    };
+
+    // Local cache of verts
+    QList<vec3d> verts;
+
+    QTextStream stream(fdata);
+    QString line;
+    int n = 0;
+
+    vec3d vMin, vMax;
+
+    line = stream.readLine();
+    while (!line.isNull()) {
+        QStringList parts = line.split(" ");
+        if (parts[0][0] == 'v') {
+            vec3d v (parts[1], parts[2], parts[3]);
+            v = v.Vector_Div(50);
+            verts.append(v);
+            if (verts.size() == 1) {
+                vMin = v;
+                vMax = v;
+            } else {
+                if (v.x < vMin.x) vMin.x = v.x;
+                if (v.y < vMin.y) vMin.y = v.y;
+                if (v.z < vMin.z) vMin.z = v.z;
+
+                if (v.x > vMax.x) vMax.x = v.x;
+                if (v.y > vMax.y) vMax.y = v.y;
+                if (v.z > vMax.z) vMax.z = v.z;
+            }
+        }
+
+        if (parts[0][0] == 'f') {
+            std::vector<int> pts;
+            pts = {convsf(parts[1]), convsf(parts[2]), convsf(parts[3])};
+            faces.append({
+                verts[pts[0]], verts[pts[1]], verts[pts[2]],
+                pts[0], pts[1], pts[2]
+            });
+        }
+        line = stream.readLine();
+    }
+    verts.clear();
+
+    dim = vMax.Vector_Sub(vMin);
+
+    vec3d vDelta;
+    vDelta = vMax.Vector_Add(vMin);
+    vDelta = vDelta.Vector_Div(2.0f);
+    for (auto&& t : faces) {
+        for (auto && tp : t.p)
+            tp = tp.Vector_Sub(vDelta);
+        t.triangle2d = t.d2ize();
+        t.id = n++;
+        t.col = 0;
+    }
+
+    return true;
+}
+
+void Depliage::trouveVoisinage () {
     int i;
     int vi;
     bool ok;
-    int nbFaces = meshModel->faces.size();
+    int nbFaces = faces.size();
     std::array<Voisin, 3> tmpV;
 
-    for (auto &&ti : meshModel->faces) {
+    for (auto &&ti : faces) {
         i = ti.id;
         for (int j = 0; j < 3; j++) {
             vi = 0;
@@ -352,21 +321,20 @@ void Depliage::trouveVoisinage()
             do {
                 if (vi != i) {
                     for (int k = 0; (k < 3) && !ok; k++)
-                        if ( (meshModel->faces[vi].pi[k] == ti.pi[next(j)])
-                            && (meshModel->faces[vi].pi[next(k)] == ti.pi[j]) ) {
+                        if ( (faces[vi].pi[k] == ti.pi[next(j)])
+                            && (faces[vi].pi[next(k)] == ti.pi[j]) ) {
 
                             // calcule coplanéité
                             int p;
-                            if (meshModel->faces[vi].eq3(ti, 0))
+                            if (faces[vi].eq3(ti, 0))
                                 p = 0;
-                            else if(meshModel->faces[vi].eq3(ti, 1))
+                            else if(faces[vi].eq3(ti, 1))
                                 p = 1;
                             else
                                 p = 2;
 
-                            qreal c = meshModel->faces[vi].isCoplanar(ti.p[p]);
+                            qreal c = faces[vi].isCoplanar(ti.p[p]);
                             tmpV[j] = Voisin(j, i, vi, next(k), sgn(c));
-                            //tmpV[j] = Voisin(i, vi, next(k), sgn(c));
                             if (j == 2) {
                                 ti.voisins = tmpV;
                                 //qDebug() << i << ti.pi[0] << ti.pi[1] << ti.pi[2] << ti.voisins[0].nF << ti.voisins[1].nF << ti.voisins[2].nF;
@@ -382,17 +350,33 @@ void Depliage::trouveVoisinage()
     }
 }
 
-void Depliage::basculeSelectionChanged(bool etat) {
-    if (etat) {
-        parent->connect(scene3d, &QGraphicsScene::selectionChanged, parent, &MainWindow::SelectionDansScene3D);
-        parent->connect(scene2d, &QGraphicsScene::selectionChanged, parent, &MainWindow::SelectionDansScene2D);
+int Depliage::chercheNum (int id1, int id2) {
+    Nums num1 = Nums(id1, id2);
+    Nums num2 = Nums(id2, id1);
+    int numC;
+    if (this->nums.contains(num1)) {
+        numC = this->nums[this->nums.indexOf(num1)].num;
+        if (numC == -1) {
+            numC = prochainNum++;
+            this->nums[this->nums.indexOf(num1)].num = numC;
+        }
     } else {
-        parent->disconnect(scene3d, &QGraphicsScene::selectionChanged, parent, &MainWindow::SelectionDansScene3D);
-        parent->disconnect(scene2d, &QGraphicsScene::selectionChanged, parent, &MainWindow::SelectionDansScene2D);
-    }
-}
+        numC = prochainNum++;
+        num1.num = numC;
+        num1.tlang = (typeLang == 0) ? L00 : (typeLang == 2) ? L11 : L10;
+        this->nums.append(num1);
 
+    }
+    return numC;
+}
+//---------------------------------------------------------
 // next et prev retournent le prochain/précédent dans
 // une liste contenant [0,1,2] en bouclant si besoin
-int next(int n) { return n == 2 ? 0 : n+1; }
-int prev(int n) { return n == 0 ? 2 : n-1; }
+int next (int n) { return n == 2 ? 0 : n+1; }
+int prev (int n) { return n == 0 ? 2 : n-1; }
+
+int sgn (qreal x) {
+    if (x < 0) return 1;
+    if (x > 0) return -1;
+    return 0;
+}

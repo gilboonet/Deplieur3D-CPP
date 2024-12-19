@@ -1,29 +1,10 @@
+// Triangle2D avec fonctions
+//---------------------------------------------------------
 #include "triangle2d.h"
 
 #include <QtMath>
 #include <QList>
-
-int sgn(qreal x) {
-    if (x < 0) return 1;
-    if (x > 0) return -1;
-    return 0;
-}
-
-bool eq(qreal a, qreal b) {
-    return qFabs(a - b) < epsilon;
-}
-
-bool eq(QPointF a, QPointF b) {
-    return eq(a.x(), b.x()) && eq(a.y(), b.y());
-}
-
-QPointF plusPetit(QPointF a, QPointF b) {
-    if ((a.x() < b.x()) || (eq(a.x(), b.x()) && (a.y() < b.y())) )
-        return a;
-    else
-        return b;
-}
-
+//---------------------------------------------------------
 QPointF rotatePt(const QPointF& v, const QPointF& c, const qreal a) {
     qreal lcos = cos(a);
     qreal lsin = sin(a);
@@ -43,13 +24,46 @@ qreal calc_angle(QPointF a, QPointF b, QPointF c) {
     return qRadiansToDegrees(rot_ab_ac);
 }
 
-
-Triangle2d::Triangle2d() {}
-Triangle2d::Triangle2d(QPointF a, QPointF b, QPointF c) : a(a), b(b), c(c) {}
-
 QList<QPointF> Triangle2d::toPolygon() {
     return {a, b, c};
 }
+
+bool eq (qreal a, qreal b) {
+    return qFabs(a - b) < epsilon;
+}
+
+bool eq (QPointF a, QPointF b) {
+    return eq(a.x(), b.x()) && eq(a.y(), b.y());
+}
+
+bool li(QPointF l1S, QPointF l1E, QPointF l2S, QPointF l2E) {
+    // true if the lines intersect
+    if (eq(l1S, l2S) || eq(l1S, l2E) || eq(l1E, l2S) || eq(l1E, l2E)) {
+        return 0;
+    }
+
+    qreal denominator =((l2E.y() - l2S.y()) *(l1E.x() - l1S.x()))
+                        -((l2E.x() - l2S.x()) *(l1E.y() - l1S.y()));
+
+    if(denominator == 0)
+        return 0;
+
+    qreal
+        a = l1S.y() - l2S.y(),
+        b = l1S.x() - l2S.x(),
+        numerator1 =((l2E.x() - l2S.x()) * a) -((l2E.y() - l2S.y()) * b),
+        numerator2 =((l1E.x() - l1S.x()) * a) -((l1E.y() - l1S.y()) * b);
+    a = numerator1 / denominator;
+    b = numerator2 / denominator;
+
+    if((a > 0) &&(a < 1) &&(b > 0) &&(b < 1))
+        return 1;
+    else
+        return 0;
+}
+//---------------------------------------------------------
+Triangle2d::Triangle2d() {}
+Triangle2d::Triangle2d(QPointF a, QPointF b, QPointF c) : a(a), b(b), c(c) {}
 
 QPointF Triangle2d::point(const int n) {
     return n == 0 ? this->a : n == 1 ? this->b : this->c;
@@ -84,33 +98,6 @@ Triangle2d Triangle2d::operator /(const qreal &v) {
 Triangle2d& Triangle2d::rotate(const QPointF& C, const qreal angle) {
     *this = Triangle2d(rotatePt(a, C, angle), rotatePt(b, C, angle), rotatePt(c, C, angle));
     return *this;
-}
-
-bool li(QPointF l1S, QPointF l1E, QPointF l2S, QPointF l2E) {
-    // true if the lines intersect
-    //if((l1S == l2S) ||(l1S == l2E) ||(l1E == l2S) ||(l1E == l2E)) {
-    if (eq(l1S, l2S) || eq(l1S, l2E) || eq(l1E, l2S) || eq(l1E, l2E)) {
-        return 0;
-    }
-
-    qreal denominator =((l2E.y() - l2S.y()) *(l1E.x() - l1S.x()))
-                        -((l2E.x() - l2S.x()) *(l1E.y() - l1S.y()));
-
-    if(denominator == 0)
-        return 0;
-
-    qreal
-        a = l1S.y() - l2S.y(),
-        b = l1S.x() - l2S.x(),
-        numerator1 =((l2E.x() - l2S.x()) * a) -((l2E.y() - l2S.y()) * b),
-        numerator2 =((l1E.x() - l1S.x()) * a) -((l1E.y() - l1S.y()) * b);
-    a = numerator1 / denominator;
-    b = numerator2 / denominator;
-
-    if((a > 0) &&(a < 1) &&(b > 0) &&(b < 1))
-        return 1;
-    else
-        return 0;
 }
 
 bool Triangle2d::overlap(const Triangle2d& t) {

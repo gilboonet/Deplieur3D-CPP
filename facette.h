@@ -1,38 +1,102 @@
+// Données d'un triangle
+//---------------------------------------------------------
 #ifndef FACETTE_H
 #define FACETTE_H
 
 #include "vec3d.h"
-#include <array>
-#include "voisin.h"
 #include "triangle2d.h"
+#include "triangleitem2d.h"
+#include "piecepolygonitem.h"
 
-
-/*struct Triangle2d {
-    QPointF a, b, c;
-    Triangle2d () {}
-    Triangle2d (QPointF va, QPointF vb, QPointF vc) : a(va), b(vb), c(vc) {}
-};*/
-
-class facette {
+#include <array>
+#include <QPolygonF>
+#include <QByteArray>
+#include <QColor>
+//---------------------------------------------------------
+class Ligne
+{
 public:
-    int id;               // Id
-    int col;               // Couleur
-    vec3d p[3];                // Coordonnées 3d
-    int pi[3];                 // id de leurs points
-    Triangle2d triangle2d;     // Coordonnées 2d
-    std::array<Voisin, 3> voisins;  // Voisins
-    bool estPremFace;          // Vrai si 1ère face d'une pièce
-    bool estLie;               // Vrai si est attaché à une face (dans une pièce)
+    QPointF p1;
+    QPointF p2;
+    int id1;
+    int id2;
+    int cop;
+    int nb;
+    bool bLang;
 
-    facette();
-    facette(vec3d, vec3d, vec3d, int, int, int);
-
-    int ClipAgainstPlane(vec3d, vec3d, facette&, facette&, facette&);
-    Triangle2d d2ize();
-    vec3d point(const int);
-    bool eq3(facette, int);
-    qreal isCoplanar(vec3d);
-    qreal isCoplanar(QVector3D);
-
+    Ligne ();
+    Ligne (QPointF, QPointF, int, int, int);
+    bool operator== (const Ligne&) const;
 };
+//---------------------------------------------------------
+class Voisin
+{
+public:
+    int id;
+    int pnF;
+    int nF;
+    int idx;
+    int cop;
+
+    Voisin ();
+    Voisin (int, int, int, int, int);
+};
+//---------------------------------------------------------
+class Facette
+{
+public:
+    int id;                 // Id
+    int col;                // Couleur
+
+    std::array<vec3d, 3> p; // Coordonnées 3d
+    int pi[3];              // id de leurs points
+    Triangle2d triangle2d;  // Coordonnées 2d
+    TriangleItem2d *triangleItem = nullptr;
+    std::array<Voisin, 3> voisins;  // Voisins
+
+    Facette ();
+    Facette (vec3d, vec3d, vec3d, int, int, int);
+
+    int ClipAgainstPlane (vec3d, vec3d, Facette&, Facette&, Facette&);
+    Triangle2d d2ize ();
+    vec3d point (const int);
+
+    qreal isCoplanar (vec3d);
+    qreal isCoplanar (QVector3D);
+    QPolygonF toPolygon ();
+    bool eq3 (Facette, int);
+};
+//---------------------------------------------------------
+struct Piece {
+    int id;
+    int nb;
+    QColor couleur = QColor();
+    QColor cDesign = QColor();
+    QList<int> elements;
+    PiecePolygonItem *bord = nullptr;
+    QList<Ligne> lignes;
+
+    void pieceConstruitBord ();
+};
+QList<QList<QPointF>> PtsDepuisLignesDeCoupe (Piece *piece);
+//---------------------------------------------------------
+enum TLang {
+    L00,
+    L10,
+    L01,
+    L11
+};
+//---------------------------------------------------------
+class Nums {
+public :
+    int id1;
+    int id2;
+    int num;
+    enum TLang tlang = L00;
+    Nums ();
+    Nums (int, int);
+    Nums (int, int, int);
+    bool operator== (const Nums&) const;
+};
+
 #endif // FACETTE_H

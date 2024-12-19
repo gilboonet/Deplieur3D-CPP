@@ -1,28 +1,823 @@
+// Interface de l'application Deplieur
+//---------------------------------------------------------
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "triangleitem3d.h"
+#include "triangleitem2d.h"
+#include "piecepolygonitem.h"
+#include "pieceligneitem.h"
+#include "piecelangitem.h"
+#include "piecenumitem.h"
+#include "svg.hpp"
 
-#include <QTableWidget>
-#include <QGraphicsScene>
-#include <QGraphicsLineItem>
-#include <QFileDialog>
 #include <QToolBar>
+#include <QTableWidgetItem>
 #include <QColorDialog>
-#include <QLabel>
-#include <QTransform>
-#include "triangleligneitem.h"
-#include "trianglelangitem.h"
-#include "numitem.h"
-#include <QtSvg/QSvgGenerator>
-#include <QBuffer>
+#include <QFileDialog>
 
 #include <QDebug>
+//---------------------------------------------------------
+void bascule (QObject *o) {
+    // Affiche/Cache un widget
+    QWidget *w = static_cast<QWidget*>(o);
+    if (w)
+        w->setVisible(!w->isVisible());
+}
+//---------------------------------------------------------
+QLabel* creeColorLabel (QColor couleur) {
+    QPixmap pixmap(15, 15);
+    pixmap.fill(couleur);
+    QLabel *label = new QLabel();
+    label->setPixmap(pixmap);
+    label->setAlignment(Qt::AlignVCenter|Qt::AlignHCenter);
+    label->setTextInteractionFlags(Qt::NoTextInteraction);
+    label->setFocusPolicy(Qt::NoFocus);
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
-{    
+    return label;
+}
+//---------------------------------------------------------
+// DESTRUCTEUR
+MainWindow::~MainWindow () {
+    // LIBERE LA MEMOIRE
+    delete ui;
+}
+
+void MainWindow::resizeEvent (QResizeEvent* event) {
+    ajuste3D();
+    QMainWindow::resizeEvent(event);
+}
+
+void MainWindow::clicPli () {
+    if (scene2d->selectedItems().isEmpty())
+        return;
+
+    QGraphicsItem *gi = scene2d->selectedItems().first();
+
+    int id1 = gi->data(0).toInt();
+    int id2 = gi->data(1).toInt();
+}
+
+void MainWindow::changeEchelle()
+{
+    bool ok;
+    qreal n = leEchelle->text().toFloat(&ok);
+
+    if (ok) {
+        dep.echelle = n;
+        for (auto && i : scene2d->items()) {
+            PiecePolygonItem *p = qgraphicsitem_cast<PiecePolygonItem*>(i);
+            if (p)
+                i->setScale(n);
+        }
+        piecesMAJ();
+    }
+    vec3d d = dep.dim.Vector_Mul(50*n);
+    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
+}
+
+void MainWindow::changeMarge (int index) {
+    scene2d->margeId = index;
+    scene2d->update();
+}
+
+void MainWindow::changeTypeLang (int typeLang) {
+    dep.typeLang = typeLang;
+    for (auto && p : dep.pieces) {
+        for (auto && l : p.lignes) {
+            Nums n = Nums(l.id1, l.id2);
+            Nums *nf = &(dep.nums[dep.nums.indexOf(n)]);
+            switch (typeLang) {
+            case 0 :
+                nf->tlang = L00;
+                l.bLang = false;
+                break;
+            case 1 :
+                nf->tlang = L10;
+                l.bLang = nf->id1 == l.id1;
+                break;
+            case 2 :
+                nf->tlang = L11;
+                l.bLang = true;
+            }
+        }
+    }
+    piecesMAJ();
+}
+
+void MainWindow::basculeLanguette(int id1, int id2) {
+    Nums n = Nums(id1, id2);
+    Nums *nf = &(dep.nums[dep.nums.indexOf(n)]);
+
+    nf->tlang = (nf->tlang == L01) ? L10 : L01;
+    piecesMAJ();
+}
+
+void MainWindow::hoverOn(int faceId)
+{
+    dep.faces[faceId].triangleItem->hoverOn = true;
+    dep.faces[faceId].triangleItem->setVisible(true);
+    dep.faces[faceId].triangleItem->setZValue(5);
+}
+
+void MainWindow::hoverOff(int faceId)
+{
+    dep.faces[faceId].triangleItem->hoverOn = false;
+    dep.faces[faceId].triangleItem->setVisible(false);
+}
+
+void MainWindow::changeCouleur (int couleur) {
+    ui->tableCouleurs->selectRow(couleur);
+    couleurClic(couleur, 0);
+}
+
+void MainWindow::changeNBCouleur (int ligne, int delta) {
+    Piece *piece = &(dep.pieces[ligne]);
+    piece->nb = piece->nb + delta;
+    QTableWidgetItem *twi = new QTableWidgetItem(QString::number(piece->nb));
+    ui->tableCouleurs->setItem(ligne, 2, twi);
+}
+
+void MainWindow::changeFaceCouleur (int faceId, int couleurId) {
+    dep.faces[faceId].col = couleurId;
+}
+
+void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
+    Piece *piece = &(dep.pieces[pieceId]);
+    Facette *facette = &(dep.faces[faceId]);
+    TriangleItem2d *tCible = facette->triangleItem;
+    bool ok = false;
+    QColor blanc = QColor(Qt::white);
+
+    if (piece->elements.removeOne(faceId)) {
+        tCible->setParentItem(0);
+        if (tCible->hoverOn)
+            hoverOff(tCible->id);
+        QPointF delta = piece->bord->pos();
+        tCible->moveBy(-delta.x(), -delta.y());
+        tCible->setPos(0,0);
+
+        changeNBCouleur(pieceId, -1);
+        changeNBCouleur(0, +1);
+
+        if (piece->elements.isEmpty()) {
+            scene2d->removeItem(piece->bord);
+            delete piece->bord;
+            piece->bord = nullptr;
+            pieceId = 0;
+            tCible->setPos(0,0);
+        }
+
+        facette->col = 0;
+        tCible->col = 0;
+        tCible->pieceCouleur = blanc;
+
+        piecesMAJ();
+        face3dMAJ(&(dep.pieces[pieceId]), faceId);
+
+        for (auto&& f3d : scene3d->items()) {
+            TriangleItem3d *fI = qgraphicsitem_cast<TriangleItem3d*>(f3d);
+            if (fI->id == faceId) {
+                fI->col = 0;
+                fI->pieceCouleur = blanc;
+                fI->update();
+            }
+        }
+        scene3d->update();
+    }
+}
+
+void MainWindow::pieceCreeLignes (Piece *piece) {
+    piece->lignes.clear();
+
+    QPointF delta = dep.faces[piece->elements.first()].triangleItem->pos();
+    QTransform transform;
+    transform.translate(delta.x(), delta.y());
+    Nums n1, nF;
+    int nC;
+    for (auto && n : piece->elements) {
+        Facette *face = &(dep.faces[n]);
+        QPolygonF P = transform.map(face->triangleItem->polygon());
+
+        for (int i = 0; i < 3; i++) {
+            QPointF P1 = P[i];
+            QPointF P2 = P[next(i)];
+            Voisin V = face->voisins[i];
+            int nl = -1;
+            int il = 0;
+            for (auto&& R : piece->lignes) {
+                if ((eq(R.p1, P1) && eq(R.p2, P2))
+                    || (eq(R.p1, P2) && eq(R.p2, P1))) {
+                    nl = il;
+                    break;
+                } else
+                    il++;
+            }
+            if (nl > -1) {
+                piece->lignes[nl].nb++;
+            } else {
+                Ligne ligne (P1, P2, V.nF, V.pnF, V.cop);
+                switch (cbLanguettes->currentIndex()) {
+                case 0 :
+                    ligne.bLang = false;
+                    break;
+                case 1 :
+                    nC = dep.chercheNum(ligne.id1, ligne.id2);
+                    nF = dep.nums[dep.nums.indexOf(Nums(ligne.id1, ligne.id2))];
+                    if (nF.tlang == L01)
+                        ligne.bLang = (ligne.id1 == nF.id2) && (ligne.id2 == nF.id1);
+                    else if (nF.tlang == L10)
+                        ligne.bLang = (ligne.id1 == nF.id1) && (ligne.id2 == nF.id2);
+                    break;
+                case 2 :
+                    ligne.bLang = true;
+                }
+
+                piece->lignes.append(ligne);
+            }
+        }
+    }
+}
+
+void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
+    Piece *piece = &(dep.pieces[pieceId]);
+    Facette *facette = &(dep.faces[faceId]);
+    TriangleItem2d *tCible = facette->triangleItem;
+    TriangleItem2d *tSource;
+    bool ok = false;
+
+    if (piece->nb == 0) { // piece vide -> créer groupe + ajouter 1ère face
+        if (!piece->bord) {
+            piece->bord = new PiecePolygonItem(scene2d, piece->couleur);
+            if (dep.echelle != 1)
+                piece->bord->setScale(dep.echelle);
+        }
+
+        tCible->setParentItem(piece->bord);
+        changeNBCouleur(facette->col, -1);
+        changeNBCouleur(pieceId, +1);
+        facette->col = pieceId;
+        QPointF centre = scene2d->pageTemoin->boundingRect().center();
+        piece->bord->setPos( centre -
+             QPointF(tCible->boundingRect().width()/2,
+                     tCible->boundingRect().height()/2));
+        tCible->col = pieceId;
+        tCible->pieceCouleur = piece->couleur;
+        piece->elements.append(faceId);
+        ok = true;
+    } else {
+        // piece non vide -> chercher voisin
+        // -> si trouvé : lier face avec voisin + ajouter face
+        bool voisinTrouve = false;
+        Voisin *vT;
+        for (auto&& i : piece->elements) {
+            for (auto && v : dep.faces[i].voisins) {
+                if (v.nF == faceId) {
+                    voisinTrouve = true;
+                    vT = &v;
+                    break;
+                }
+            }
+            if (voisinTrouve)
+                break;
+        }
+
+        if (voisinTrouve) {
+            ui->statusbar->showMessage("Ok");
+            tSource = dep.faces[vT->pnF].triangleItem;
+
+            QPolygonF pCible = tCible->polygon();
+            QPolygonF pSource = tSource->polygon();
+            QPointF ptOrig = pSource[vT->id];
+            QPointF delta = ptOrig - pCible[vT->idx];
+            QTransform trT;
+            trT.translate(delta.x(), delta.y());
+            pCible = trT.map(pCible);
+
+            QTransform trR;
+            qreal angle = calc_angle(
+                ptOrig,
+                pSource[next(vT->id)],
+                pCible[prev(vT->idx)]);
+            trR.translate(ptOrig.x(), ptOrig.y());
+            trR.rotate(-angle);
+            trR.translate(-ptOrig.x(), -ptOrig.y());
+
+            tCible->setPolygon(trR.map(pCible));
+            tCible->setParentItem(piece->bord);
+
+            changeNBCouleur(facette->col, -1);
+            changeNBCouleur(pieceId, +1);
+            facette->col = pieceId;
+            tCible->col = pieceId;
+            tCible->pieceCouleur = piece->couleur;
+            piece->elements.append(faceId);
+            ok = true;
+        }
+        else {
+            ui->statusbar->showMessage("voisin non trouvé");
+        }
+    }    
+    if (ok) {
+        piecesMAJ();
+        face3dMAJ(piece, faceId);
+    }
+}
+
+void MainWindow::piecesMAJ () {
+    for (auto&& n : dep.nums) { // supprime les numéros
+        n.num = -1;
+    }
+    dep.prochainNum = 0;
+
+    // pas de piece "0"
+    for (int i = 1; i < dep.pieces.size(); i++) {
+        pieceMAJ(&(dep.pieces[i]));
+    }
+}
+
+void MainWindow::pieceMAJ (Piece *piece) {
+    if (piece->elements.isEmpty())
+        return;
+
+    pieceCreeLignes(piece);
+
+    for (auto&& i : piece->bord->childItems()) {
+        PieceLigneItem *gli = qgraphicsitem_cast<PieceLigneItem*>(i);
+        if (gli) {
+            gli->setParentItem(0);
+            scene2d->removeItem(gli);
+            delete gli;
+        }
+    }
+
+    // recalc bLang
+    for (auto&& l : piece->lignes) {
+        int num = (l.nb == 1) ? dep.chercheNum(l.id1, l.id2) : -1;
+        PieceLigneItem *gli = new PieceLigneItem(piece->bord, &l, num);
+    }
+    piece->pieceConstruitBord();
+}
+
+void MainWindow::face3dMAJ (Piece *piece, int faceId) {
+    for (auto&& f3d : scene3d->items()) {
+        TriangleItem3d *fI = qgraphicsitem_cast<TriangleItem3d*>(f3d);
+        if (fI->id == faceId) {
+            fI->col = piece->id;
+            fI->pieceCouleur = piece->couleur;
+            fI->update();
+        }
+    }
+}
+
+void MainWindow::peutColorierFace (int faceId) {
+    // CLIC SUR UNE FACE 3D : COLORIER OU NON ?
+    Facette *facette = &(dep.faces[faceId]);
+    int coul = ui->tableCouleurs->currentRow();
+
+    // SI COUL = 0
+    // -> SI COUL FACE = 0 -> ne rien faire
+    // ----> SINON ENLEVER FACE DE SA PIECE ACTUELLE
+    if (coul == 0) {
+        if (facette->col == 0) {
+            //qDebug() << "RIEN A FAIRE";
+        } else {
+            //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
+            pieceEnleveFace(facette->col, facette->id);
+        }
+    } else {
+        if (facette->col == 0) {
+            //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
+            pieceAjouteFace(coul, facette->id);
+        } else {
+            //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
+            pieceEnleveFace(facette->col, facette->id);
+            //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
+            pieceAjouteFace(coul, facette->id);
+        }
+    }
+}
+
+void MainWindow::exporte () {
+    SVG::SVG root;
+    QByteArray svgRoot;
+
+    qreal s = 5.0f / 1.76f;
+    QTransform tSPage;
+    tSPage.scale(s, s);
+
+    root.set_attr("width", QString("%1mm").arg(dep.dimPage.x()).toStdString());
+    root.set_attr("height", QString("%1mm").arg(dep.dimPage.y()).toStdString());
+    QPoint scaledPageDim = tSPage.map(dep.dimPage);
+    root.set_attr("viewBox", QString("0 0 %1 %2").arg(scaledPageDim.x()).arg(scaledPageDim.y()).toStdString());
+
+    // Basic CSS support
+    root.style("path").set_attr("fill", "none");
+
+    s *= dep.echelle;
+    QTransform tS;
+    tS.scale(s, s);
+
+    SVG::Group *gPage, *gNums;
+    SVG::Path *chCoupe, *chPliM, *chPliV;
+
+    QList <SVG::Path *> LCoupes;
+    QList <SVG::Path *> LPlisM;
+    QList <SVG::Path *> LPlisV;
+    QList <SVG::Group *> LNums;
+
+    piecesMAJ();
+
+    // recherche nb pages
+    int maxP = 0;
+    for (auto && p : dep.pieces) {
+        if (!p.bord)
+            continue;
+        int x = p.bord->x() / dep.dimPage.x();
+        if (x > maxP)
+            maxP = x;
+    }
+
+    for (int i = 0; i <= maxP; i++) {
+        gPage = root.add_child<SVG::Group>();
+        QString snum = QString("_%1").arg(i+1, 3, 10, QChar('0'));
+        gPage->set_attr("id", QString("page%1").arg(snum).toStdString());
+
+        chCoupe = gPage->add_child<SVG::Path>();
+        LCoupes.append(chCoupe);
+        chCoupe->set_attr("id", QString("coupes%1").arg(snum).toStdString());
+        chCoupe->set_attr("stroke", "red");
+        chCoupe->set_attr("stroke-width", "1");
+        chCoupe->set_attr("fill", "beige");
+
+        chPliM = gPage->add_child<SVG::Path>();
+        LPlisM.append(chPliM);
+        chPliM->set_attr("id", QString("plisM%1").arg(snum).toStdString());
+        chPliM->set_attr("stroke", "brown");
+        chPliM->set_attr("stroke-dasharray", "12 12");
+        chPliM->set_attr("stroke-width", "1");
+
+        chPliV = gPage->add_child<SVG::Path>();
+        LPlisV.append(chPliV);
+        chPliV->set_attr("id", QString("plisV%1").arg(snum).toStdString());
+        chPliV->set_attr("stroke", "green");
+        chPliV->set_attr("stroke-dasharray", "8 2 1 2");
+        chPliV->set_attr("stroke-width", "1");
+
+        gNums = gPage->add_child<SVG::Group>();
+        LNums.append(gNums);
+        gNums->set_attr("id", QString("nums%1").arg(snum).toStdString());
+    }
+
+    QPointF centre, b, p1, p2, delta;
+    Nums num1;
+    for (auto && n : dep.pieces) {
+        if (!n.bord)
+            continue;
+
+        int x = (n.bord->x() / dep.dimPage.x());
+        chCoupe = LCoupes[x];
+        chPliM = LPlisM[x];
+        chPliV = LPlisV[x];
+        gNums = LNums[x];
+
+        delta = n.bord->pos();
+        for (auto && l : n.lignes) {
+            p1 = l.p1 + delta;
+            p2 = l.p2 + delta;
+            p1 = tS.map(p1);
+            p2 = tS.map(p2);
+            QLineF ligne = QLineF(p1, p2);
+            QPolygonF pLang;
+            if (l.nb == 1) {
+                if (l.bLang) {
+                    pLang = lineToLang(p1, p2, true).toFillPolygon();
+                    chCoupe->move_to(pLang[0].x(), pLang[0].y());
+                    chCoupe->line_to(pLang[1].x(), pLang[1].y());
+                    chCoupe->line_to(pLang[2].x(), pLang[2].y());
+                    chCoupe->line_to(pLang[3].x(), pLang[3].y());
+                    if (l.cop > 0) {
+                        chPliV->move_to(p1.x(), p1.y());
+                        chPliV->line_to(p2.x(), p2.y());
+                    } else {
+                        chPliM->move_to(p1.x(), p1.y());
+                        chPliM->line_to(p2.x(), p2.y());
+                    }
+                } else {
+                    chCoupe->move_to(p1.x(), p1.y());
+                    chCoupe->line_to(p2.x(), p2.y());
+                }
+
+                num1 = Nums(l.id1, l.id2);
+                QString chNumero = QString::number(dep.nums[dep.nums.indexOf(num1)].num);
+                SVG::Text *numero;
+                int dX;
+                if (l.bLang && (ligne.length() > 20)) {
+                    centre = centroid4(pLang);
+                    dX = 0;  // 12
+                } else {
+                    dX = -7;
+                    centre =  ligne.center();
+                }
+                numero = gNums->add_child<SVG::Text>(0, dX, chNumero.toStdString());
+                int angle = 180 - ligne.angle();
+                numero->set_attr("font-family", "monospace");
+                numero->set_attr("font-size", "12pt");
+                numero->set_attr("text-anchor", "middle");
+                numero->set_attr("dominant-baseline", "central");
+                numero->set_attr("transform", QString("translate (%1 %2) rotate(%3)")
+                    .arg(centre.x()).arg(centre.y()).arg(angle).toStdString());
+            } else {
+                if (l.cop < 0) {
+                    chPliM->move_to(p1.x(), p1.y());
+                    chPliM->line_to(p2.x(), p2.y());
+                } else if (l.cop > 0) {
+                    chPliV->move_to(p1.x(), p1.y());
+                    chPliV->line_to(p2.x(), p2.y());
+                }
+            }
+        }
+    }
+    svgRoot = QByteArray::fromStdString(std::string(root));
+    QFileDialog::saveFileContent(svgRoot, "myExport.svg");
+}
+
+QPainterPath MainWindow::construitChemin(QList<QLineF> lignes) {
+    QPainterPath chemin;
+    for (auto && l : lignes) {
+        chemin.moveTo(l.p1().x(), l.p1().y());
+        chemin.lineTo(l.p2().x(), l.p2().y());
+    }
+    return chemin;
+}
+
+void MainWindow::ajoutePage () {
+    scene2d->nbPages++;
+    scene2d->update();
+    ajuste2D();
+}
+
+void MainWindow::supprimePage () {
+    if (scene2d->nbPages > 1) {
+        scene2d->nbPages--;
+        scene2d->update();
+        ajuste2D();
+    }
+}
+
+void MainWindow::tourner3DXD () {
+    if (!dep.ModeleOK)
+        return;
+
+    dep.fThetaX += dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourner3DXG () {
+    if(!dep.ModeleOK)
+        return;
+
+    dep.fThetaX -= dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourner3DYD () {
+    if(!dep.ModeleOK)
+        return;
+
+    dep.fThetaY += dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourner3DYG () {
+    if(!dep.ModeleOK)
+        return;
+
+    dep.fThetaY -= dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourner3DZD () {
+    if(!dep.ModeleOK)
+        return;
+
+    dep.fThetaZ += dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourner3DZG () {
+    if(!dep.ModeleOK)
+        return;
+
+    dep.fThetaZ -= dep.fPas;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourneModele (qreal dZ, qreal dX) {
+    dep.fThetaZ += dZ;
+    dep.fThetaX -= dX;
+    dep.dessineModele(scene3d);
+}
+
+void MainWindow::tourne2D (qreal a) {
+    if (scene2d->selectedItems().isEmpty())
+        return;
+
+    PiecePolygonItem *bord = static_cast<PiecePolygonItem*>(scene2d->selectedItems().first());
+    if (bord) {
+        QPointF centre = bord->boundingRect().center();
+        QTransform transform;
+        transform.translate(centre.x(), centre.y()).rotate(a).translate(-centre.x(), -centre.y());
+        bord->setPolygon(transform.map(bord->polygon()));
+
+        for (auto&& i : bord->childItems()) {
+            QGraphicsPolygonItem *p = qgraphicsitem_cast<QGraphicsPolygonItem*>(i);
+            if (p) {
+                p->setPolygon(transform.map(p->polygon()));
+                continue;
+            }
+
+            TriangleItem2d *t = qgraphicsitem_cast<TriangleItem2d*>(i);
+            if (t) {
+                t->setPolygon(transform.map(t->polygon()));
+                continue;
+            }
+
+            PieceLigneItem *l = qgraphicsitem_cast<PieceLigneItem*>(i);
+            if (l) {
+                l->setLine(transform.map(l->line()));
+                for (auto && lc : l->childItems()) {
+                    PieceLangItem *pla = qgraphicsitem_cast<PieceLangItem*>(lc);
+                    if (pla) {
+                        pla->setPath(transform.map(pla->path()));
+                        continue;
+                    }
+                    PieceNumItem *lt = qgraphicsitem_cast<PieceNumItem*>(lc);
+                    if (lt) {
+                        QPointF b = QPointF(lt->boundingRect().width() / 2,
+                                            lt->boundingRect().height() + dep.dYt);
+                        lt->setTransformOriginPoint(b);
+                        lt->setRotation(180- l->line().angle());
+                        QPointF centre = l->line().center() - b;
+                        lt->setPos(centre);
+                        //continue;
+                    }
+                }
+            }
+        }
+        bord->update();
+    }
+}
+
+void MainWindow::ajuste3D () {
+    ui->vue3d->fitInView(ui->vue3d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
+}
+
+void MainWindow::ajuste2D () {
+    if (!scene2d->pageTemoin) {
+        scene2d->pageTemoin = new QGraphicsRectItem( 0, 0, 220* scene2d->nbPages, 297);
+        scene2d->pageTemoin->setPen(QPen(Qt::NoPen));
+        scene2d->pageTemoin->setData(0, QVariant(1));
+        scene2d->addItem(scene2d->pageTemoin);
+    } else
+        scene2d->pageTemoin->setRect(0, 0, 220* scene2d->nbPages, 297);
+    ui->vue2d->fitInView(ui->vue2d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
+}
+
+void MainWindow::couleurClic (int ligne, int col) {
+    // clic sur un item du tableau des couleurs
+    if (col > 0)
+        return;
+
+    scene3d->itemColorId = ligne;
+    scene3d->itemColor = dep.pieces[ligne].couleur;
+}
+
+void MainWindow::bascule2d () {
+    // AFFICHE/CACHE LA VUE 2D
+    bascule(ui->splitter->children()[0]);
+    ajuste3D();
+    ajuste2D();
+}
+
+void MainWindow::bascule3d () {
+    // AFFICHE/CACHE LA VUE 3D
+    bascule(ui->splitter->children()[1]);
+    ajuste3D();
+    ajuste2D();
+}
+
+void MainWindow::basculeCouleurs () {
+    // AFFICHE/CACHE LES COULEURS
+    bascule(ui->splitter->children()[2]);
+    ajuste3D();
+    ajuste2D();
+}
+
+void MainWindow::couleurChoisie (QColor color) {
+    // Une couleur a été choisie ...
+    if (!dep.ModeleOK)
+        return;
+
+    if (!color.isValid())
+        return;
+
+    bool ok = true;
+    for (auto && pc :dep.pieces) {
+        if (pc.couleur == color) {
+            ok = false;
+            break;
+        }
+    }
+    if (ok) {
+        Piece p1;
+        p1.couleur = color;
+        p1.nb = 0;
+        int nb = ui->tableCouleurs->rowCount();
+        ui->tableCouleurs->setRowCount(nb+1);
+        p1.id = nb;
+        dep.pieces.append(p1);
+        ui->tableCouleurs->setCellWidget(nb, 0, creeColorLabel(color));
+        ui->tableCouleurs->setCellWidget(nb, 1, creeColorLabel(color));
+        ui->tableCouleurs->setItem(nb, 2, new QTableWidgetItem("0"));
+        QString s = QString("Piece #%1").arg(nb);
+        ui->tableCouleurs->setItem(nb, 3, new QTableWidgetItem(s));
+        ui->statusbar->showMessage("Couleur ajoutée");
+        ui->tableCouleurs->selectRow(nb);
+        couleurClic(nb, 0);
+    } else {
+        ui->statusbar->showMessage("Couleur déjà utilisée !");
+    }
+}
+
+void MainWindow::couleurNouveau () {
+    // Le bouton "+" (couleurs) a été appuyé ...
+    if(!dep.ModeleOK)
+        return;
+
+    QColorDialog *dialog = new QColorDialog();
+    dialog->setOption(QColorDialog::NoEyeDropperButton);
+    connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
+    dialog->open();
+}
+
+void MainWindow::nouveau () {
+    // Nouveau projet : choisit un fichier .obj et le charge
+    auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
+        if (!fileName.isEmpty()) {
+            // Use fileName and fileContent
+            dep = Depliage();
+            dep.ModeleOK = true;
+            leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+            QFileInfo f(fileName);
+            setWindowTitle("Deplieur [" + f.fileName() + "]");
+            dep.chargeFichierOBJ(fileContent);
+
+            Piece p0;
+            p0.id = 0;
+            p0.couleur = Qt::white;
+            p0.nb = dep.faces.size();
+            dep.pieces.append(p0);
+
+            changeNBCouleur(0);
+            ui->tableCouleurs->setRowCount(1);
+            dep.dessineModele(scene3d);
+            connect(scene3d, &DepliageScene::changeCouleur, this, &MainWindow::changeCouleur);
+            connect(scene3d, &DepliageScene::changeNBCouleur, this, &MainWindow::changeNBCouleur);
+            connect(scene3d, &DepliageScene::changeFaceCouleur, this, &MainWindow::changeFaceCouleur);
+            connect(ui->vue3d, &DepliageVue3d::tourneModele, this, &MainWindow::tourneModele);
+            connect(ui->vue2d, &DepliageVue2d::tourne2D, this, &MainWindow::tourne2D);
+            connect(scene3d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
+            connect(scene3d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
+            connect(scene2d, &DepliageScene::basculeLanguette, this, &MainWindow::basculeLanguette);
+            connect(scene3d, &DepliageScene::hoverOn, this, &MainWindow::hoverOn);
+            connect(scene3d, &DepliageScene::hoverOff, this, &MainWindow::hoverOff);
+
+            //connect(scene2d, &DepliageScene::selectionChanged, this, &MainWindow::clicPli);
+
+            scene2d->nbPages = 1;
+            dep.creeFaces2d(scene2d);
+            dep.trouveVoisinage();
+
+            //connect(dep->scene2d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
+            //dep.basculeSelectionChanged(true);
+
+            vec3d d = dep.dim.Vector_Mul(50);
+            ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
+
+            ajuste3D();
+            ajuste2D();
+        }
+    };
+    QFileDialog::getOpenFileContent("fichier OBJ (*.obj)",  fileContentReady);
+}
+
+// CONSTRUCTEUR
+MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
+    // DEFINIT L'INTERFACE
     ui->setupUi(this);
     setWindowFlag(Qt::Window);
 
-    dep = nullptr;
+    dep.ModeleOK = false;
 
     // Menu principal
     QToolBar *tbMain = new QToolBar(this);
@@ -31,13 +826,22 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tbMain->addAction(ui->actionSauver);
     tbMain->addAction(ui->actionExporter);
     tbMain->addAction(ui->actionQuitter);
+
+    tbMain->addSeparator();
+    tbMain->addAction(ui->actionBasculeCouleurs);
+    connect(ui->actionBasculeCouleurs, &QAction::triggered, this, &MainWindow::basculeCouleurs);
+    tbMain->addAction(ui->actionBascule3D);
+    connect(ui->actionBascule3D, &QAction::triggered, this, &MainWindow::bascule3d);
+    tbMain->addAction(ui->actionBascule2D);
+    connect(ui->actionBascule2D, &QAction::triggered, this, &MainWindow::bascule2d);
+
     tbMain->setOrientation(Qt::Vertical);
     tbMain->setMaximumWidth(25);
     ui->verticalLayoutMenu->addWidget(tbMain);
 
     connect(ui->actionNouveau, &QAction::triggered, this, &MainWindow::nouveau);
-    connect(ui->actionQuitter, &QAction::triggered, this, &MainWindow::quitter);
-    connect(ui->actionExporter, &QAction::triggered, this, &MainWindow::exporter);
+    connect(ui->actionQuitter, &QAction::triggered, this, &QApplication::quit);
+    connect(ui->actionExporter, &QAction::triggered, this, &MainWindow::exporte);
 
     // Menu Pieces/couleurs
     QToolBar *tbCol = new QToolBar(this);
@@ -45,100 +849,73 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(ui->actionCouleurPlus, &QAction::triggered, this, &MainWindow::couleurNouveau);
 
     tbCol->addAction(ui->actionCouleurMoins);
-    connect(ui->actionCouleurMoins, &QAction::triggered, this, &MainWindow::couleurSupprime);
-
-    tbCol->addAction(ui->actionCouleurAssembler);
-    connect(ui->actionCouleurAssembler, &QAction::triggered, this, &MainWindow::couleurAssemble);
+    //connect(ui->actionCouleurMoins, &QAction::triggered, this, &MainWindow::couleurSupprime);
 
     ui->verticalLayoutCouleurs->setMenuBar(tbCol);
 
     ui->tableCouleurs->setRowCount(1);
-    ui->tableCouleurs->setColumnCount(3);
+    ui->tableCouleurs->setColumnCount(4);
     ui->tableCouleurs->setColumnWidth(0, 5);
-    ui->tableCouleurs->setColumnWidth(1, 35);
-    ui->tableCouleurs->setColumnWidth(2, 113);
-
+    ui->tableCouleurs->setColumnWidth(1, 5);
+    ui->tableCouleurs->setColumnWidth(2, 35);
+    ui->tableCouleurs->setColumnWidth(3, 108);
     // Première ligne : couleur white par défaut
-    QPixmap pixmap(15, 15);
-    QColor c = Qt::white;
-    pixmap.fill(c);
-    QLabel *l = new QLabel();
-    l->setPixmap(pixmap);
-    l->setAlignment(Qt::AlignVCenter|Qt::AlignHCenter);
-    l->setTextInteractionFlags(Qt::NoTextInteraction);
-    l->setFocusPolicy(Qt::NoFocus);
-    ui->tableCouleurs->setCellWidget(0, 0, l);
-    QTableWidgetItem *tiN = new QTableWidgetItem("0");
-    ui->tableCouleurs->setItem(0, 1, tiN);
-    QTableWidgetItem *tiT = new QTableWidgetItem("Defaut");
-    ui->tableCouleurs->setItem(0, 2, tiT);
-
+    ui->tableCouleurs->setCellWidget(0, 0, creeColorLabel(Qt::white));
+    ui->tableCouleurs->setCellWidget(0, 1, creeColorLabel(Qt::white));
+    ui->tableCouleurs->setItem(0, 2, new QTableWidgetItem("0"));
+    ui->tableCouleurs->setItem(0, 3, new QTableWidgetItem("Defaut"));
     connect(ui->tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
     ui->tableCouleurs->clearSelection();
+
 
     // Menu 3d
     QToolBar *tb3d = new QToolBar(this);
 
     tb3d->addAction(ui->actionXG);
     connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
-
     tb3d->addWidget(new QLabel("X"));
-
     tb3d->addAction(ui->actionXD);
     connect(ui->actionXD, &QAction::triggered, this, &MainWindow::tourner3DXD);
 
     tb3d->addSeparator();
-
     tb3d->addAction(ui->actionYG);
     connect(ui->actionYG, &QAction::triggered, this, &MainWindow::tourner3DYG);
-
     tb3d->addWidget(new QLabel("Y"));
-
     tb3d->addAction(ui->actionYD);
     connect(ui->actionYD, &QAction::triggered, this, &MainWindow::tourner3DYD);
 
     tb3d->addSeparator();
-
     tb3d->addAction(ui->actionZG);
     connect(ui->actionZG, &QAction::triggered, this, &MainWindow::tourner3DZG);
-
     tb3d->addWidget(new QLabel("Z"));
-
     tb3d->addAction(ui->actionZD);
     connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
 
     tb3d->addSeparator();
-
     tb3d->addAction(ui->actionZoomMoins);
-    connect(ui->actionZoomMoins, &QAction::triggered, this, &MainWindow::zoom3DMoins);
-
+    //connect(ui->actionZoomMoins, &QAction::triggered, this, &MainWindow::zoom3DMoins);
     tb3d->addWidget(new QLabel("Zoom."));
-
     tb3d->addAction(ui->actionZoomPlus);
-    connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
+    //connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
 
     ui->verticalLayout3D->setMenuBar(tb3d);
 
     // menu 2d
     QToolBar *tb2d = new QToolBar(this);
 
-    tb2d->addAction(ui->action2DZoomMoins);
-    connect(ui->action2DZoomMoins, &QAction::triggered, this, &MainWindow::zoom2DMoins);
-
+/*    tb2d->addAction(ui->action2DZoomMoins);
+    //connect(ui->action2DZoomMoins, &QAction::triggered, this, &MainWindow::zoom2DMoins);
     tb2d->addWidget(new QLabel("Zoom"));
-
     tb2d->addAction(ui->action2DZoomPlus);
-    connect(ui->action2DZoomPlus, &QAction::triggered, this, &MainWindow::zoom2DPlus);
+    //connect(ui->action2DZoomPlus, &QAction::triggered, this, &MainWindow::zoom2DPlus);
 
     tb2d->addSeparator();
     tb2d->addAction(ui->action2DRotMoins);
-    connect(ui->action2DRotMoins, &QAction::triggered, this, &MainWindow::Rot2DMoins);
-
+    //connect(ui->action2DRotMoins, &QAction::triggered, this, &MainWindow::Rot2DMoins);
     tb2d->addWidget(new QLabel("Rot."));
-
     tb2d->addAction(ui->action2DRotPlus);
-    connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
-
+    //connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
+*/
     tb2d->addSeparator();
     leEchelle =  new QLineEdit();
     leEchelle->setMaximumWidth(50);
@@ -149,7 +926,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     leEchelle->setValidator(val);
     tb2d->addWidget(new QLabel("Echelle:"));
     tb2d->addWidget(leEchelle);
-    connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
+    connect(leEchelle, &QLineEdit:: returnPressed, this, &MainWindow::changeEchelle);
 
     tb2d->addSeparator();
     tb2d->addWidget(new QLabel("Lang.:"));
@@ -165,835 +942,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(ui->actionPgPlus, &QAction::triggered, this, &MainWindow::ajoutePage);
     connect(ui->actionPgMoins, &QAction::triggered, this, &MainWindow::supprimePage);
 
+    tb2d->addSeparator();
+    tb2d->addWidget(new QLabel("Marges:"));
+    QComboBox *cbMarges = new QComboBox();
+    cbMarges->addItems({"Sans", "Cricut", "Brother", "Silhoutte"});
+    cbMarges->setMaximumWidth(150);
+    tb2d->addWidget(cbMarges);
+    connect(cbMarges, &QComboBox::currentIndexChanged, this, &MainWindow::changeMarge);
+
     ui->verticalLayout2D->setMenuBar(tb2d);
-}
 
-MainWindow::~MainWindow()
-{
-    if (dep) {
-        dep->scene3d->disconnect();
-        dep->scene2d->disconnect();
-        free(dep);
-    }
-    delete ui;
-}
+    scene3d = new DepliageScene(this, false);
+    ui->vue3d->setScene(scene3d);
 
-void MainWindow::quitter()
-{
-    QApplication::quit();
-}
-
-void MainWindow::ajoutePage() {
-    if (!dep)
-        return;
-
-    dep->ajoutePage();
-    ui->vue2d->fitInView(dep->scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
-}
-
-void MainWindow::supprimePage() {
-    if (!dep)
-        return;
-
-    if (!dep->pages.count() > 1) {
-        dep->scene2d->removeItem(dep->pages.last());
-        dep->pages.removeLast();
-        ui->vue2d->fitInView(dep->scene2d->itemsBoundingRect(), Qt::KeepAspectRatio);
-    }
-}
-
-void MainWindow::changeTypeLang(int index) {
-    if (!dep)
-        return;
-
-    TLang iL = static_cast<TLang>(index);
-
-    if (iL == L00 || iL == L11) {
-        for (auto&& num : dep->nums) {
-            num.tlang = iL;
-        }
-    } else {
-        for (auto&& num : dep->nums) {
-            if (num.tlang != L10 && num.tlang != L01)
-                num.tlang = L10;
-        }
-    }
-    couleurAssemble();
-}
-
-void MainWindow::exporter()
-{
-    if (!dep)
-        return;
-
-    qreal s = 5.0f / 1.76f;
-
-    QSvgGenerator SG;
-    SG.setSize(QSize(210*s, 297*s));
-    SG.setViewBox(QRect(0, 0, 210*s, 297*s));
-    SG.setTitle("EXPORT SVG");
-    //SG.setDescription(tr("An SVG drawing created by the SVG Generator "
-    //                            "Example provided with Qt."));
-
-    QPainter painter;
-    QBuffer buffer;
-    SG.setOutputDevice(&buffer);
-
-    QPen penC = QPen(QBrush(Qt::red), 0.2, Qt::SolidLine);
-    QPen penM = QPen(QBrush(Qt::darkRed), 0.1, Qt::DashLine);
-    QPen pen0 = QPen(QBrush(Qt::black), 0.1, Qt::NoPen);
-    QPen penV = QPen(QBrush(Qt::green), 0.1, Qt::DashDotDotLine);
-    QPen penN = QPen(QBrush(Qt::blue), 0.2, Qt::SolidLine);
-
-    painter.begin(&SG);
-    QFont tf = QFont("Bitstream Vera Sans", 7*s);
-    tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
-    painter.setFont(tf);
-
-    QTransform tS;
-    tS.scale(s, s);
-
-    for (auto && pool : dep->pool) {
-        for (auto && piece : pool.pieces) {
-            TriangleItem *prem = dep->t2d[piece.premId];
-            for (auto && ligne : prem->childItems()) {
-                TriangleLigneItem *tli = qgraphicsitem_cast<TriangleLigneItem*>(ligne);
-                if (tli) {
-                    QPointF p1 = tS.map(prem->mapToScene(tli->mapToParent(tli->line().p1())));
-                    QPointF p2 = tS.map(prem->mapToScene(tli->mapToParent(tli->line().p2())));
-                    bool lb = tli->data(1).toBool();
-                    if (tli->ligne->nb == 1 && !lb) {
-                        // LIGNE DE COUPE
-                        painter.setPen(penC);
-                    } else {
-                        // PLI
-                        if (tli->ligne->cop > 0) {
-                            // PLI MONTAGNE
-                            painter.setPen(penM);
-                        } else if (tli->ligne->cop < 0) {
-                            // PLI VALLEE
-                            painter.setPen(penV);
-                        } else {
-                            painter.setPen(tli->ligne->nb == 1 ? penC : pen0);
-                        }
-                    }
-                    painter.drawLine(p1, p2);
-
-                    continue;
-                }
-
-                TriangleLangItem *tlai = qgraphicsitem_cast<TriangleLangItem*>(ligne);
-                if (tlai) {
-                    if (tlai->data(1).toBool()) {
-                        painter.setPen(penC);
-                        painter.drawPath(tS.map(tlai->mapToScene(tlai->path())));
-                    }
-                    continue;
-                }
-
-                NumItem *numi = qgraphicsitem_cast<NumItem*>(ligne);
-                if (numi) {
-                    painter.setPen(penN);
-                    QPointF b, centre;
-                    if (numi->bLang) {
-                        centre = numi->tli->mapToScene(centroid4(lineToLang(
-                                                        numi->tli->line().p1(),
-                                                        numi->tli->line().p2()
-                                                        ).toFillPolygon()));
-                        centre = tS.map(centre);
-                        painter.save();
-                        painter.translate(centre);
-                        painter.rotate(180- numi->tli->line().angle());
-                        b = QPointF(- numi->boundingRect().width()/2, 3);
-                        painter.drawText(tS.map(b), numi->text());
-                        painter.restore();
-                    } else {
-                        centre =  tS.map(numi->tli->mapToScene(numi->tli->line().center()));
-                        painter.save();
-                        painter.translate(centre);
-                        painter.rotate(180- numi->tli->line().angle());
-                        b = QPointF(- numi->boundingRect().width()/2, -1.8f);
-                        painter.drawText(tS.map(b), numi->text());
-                        painter.restore();
-                    }
-                }
-            }
-        }
-    }
-    painter.end();
-
-    QFileDialog::saveFileContent(buffer.data(), "myExport.svg");
-}
-
-void MainWindow::nouveau()
-{
-    auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
-        if (!fileName.isEmpty()) {
-            // Use fileName and fileContent
-            dep = new Depliage(this);
-            leEchelle->setText(QString::number(dep->echelle,'g',2));
-            ui->vue3d->setScene(dep->scene3d);
-            ui->vue2d->setScene(dep->scene2d);
-            QFileInfo f(fileName);
-            setWindowTitle("Deplieur [" + f.fileName() + "]");
-            dep->meshModel->LoadFromObjectFile(fileContent);
-            QTableWidgetItem *twi = new QTableWidgetItem(QString::number(dep->meshModel->faces.size()));
-            ui->tableCouleurs->setItem(0, 1, twi);
-
-            Pool p0;
-            QList<int> li;
-            for(int i=0; i< dep->meshModel->faces.size(); i++) {
-                li.push_back(i);
-            }
-            p0.couleur = Qt::white;
-            p0.elements = li;
-            dep->pool.push_back(p0);
-            ui->tableCouleurs->setRowCount(1);
-            dep->dessineModele();
-            connect(dep->scene3d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
-            dep->creeFaces2d();
-            connect(dep->scene2d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
-            dep->trouveVoisinage();
-            ui->vue3d->fitInView(dep->scene3d->itemsBoundingRect(), Qt::KeepAspectRatio);
-            dep->basculeSelectionChanged(true);
-
-            vec3d d = dep->meshModel->dim.Vector_Mul(50);
-            ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
-        }
-    };
-    QFileDialog::getOpenFileContent("fichier OBJ (*.obj)",  fileContentReady);
-}
-
-void MainWindow::SelectionDansScene3D()
-{
-    if (!dep)
-        return;
-
-    AfficheNbSel(dep->scene3d);
-
-    dep->basculeSelectionChanged(false);
-    dep->scene2d->clearSelection();
-    for(auto&& i : dep->scene3d->selectedItems()) {
-        int ni = i->data(0).toInt();
-        for(auto && j : dep->t2d) {
-            if (ni == j->id) {
-                j->setSelected(true);
-                break;
-            }
-        }
-    }
-    dep->basculeSelectionChanged(true);
-}
-
-void MainWindow::AfficheNbSel(QGraphicsScene *scene)
-{
-    if (!dep)
-        return;
-
-    int nbSel = scene->selectedItems().size();
-    if (nbSel == 0) {
-        statusBar()->showMessage("Aucune selection");
-    } else if (nbSel == 1) {
-        QList<QGraphicsItem*> si = scene->selectedItems();
-        int nf = si[0]->data(0).toInt();
-        facette *f = &(dep->meshModel->faces[nf]);
-
-        statusBar()->showMessage( QString("face %1 : v1 (%2,%3) v2(%4,%5) v3(%6,%7)").arg(nf)
-            .arg(f->voisins[0].nF).arg(f->voisins[0].pnF)
-            .arg(f->voisins[1].nF).arg(f->voisins[1].pnF)
-            .arg(f->voisins[2].nF).arg(f->voisins[2].pnF)
-        );
-    } else if (nbSel < 5) {
-        QStringList si;
-        for(auto && i : scene->selectedItems())
-            si.append(i->data(0).toString());
-        statusBar()->showMessage("faces: " + si.join(","));
-    } else {
-        statusBar()->showMessage(QString("%1 faces").arg(nbSel));
-    }
-}
-
-void MainWindow::changeCouleur(int couleur)
-{
-    if (!dep)
-        return;
-
-    ui->tableCouleurs->selectRow(couleur);
-}
-
-void MainWindow::changeEchelle()
-{
-    if (!dep)
-        return;
-
-    bool ok;
-    qreal n = leEchelle->text().toFloat(&ok);
-
-    if (ok) {
-        dep->echelle = n;
-        for (auto&& i : dep->t2d) {
-            if (!(i->parentItem()))
-                i->setScale(n);
-        }
-    }
-    dep->scene2d->update();
-    vec3d d = dep->meshModel->dim.Vector_Mul(50*n);
-    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
-}
-
-void MainWindow::SelectionDansScene2D()
-{
-    if (!dep)
-        return;
-
-    AfficheNbSel(dep->scene2d);
-
-    dep->basculeSelectionChanged(false);
-    dep->scene3d->clearSelection();
-    for(auto&& i : dep->scene2d->selectedItems()) {
-        int ni = i->data(0).toInt();
-        for(auto && j : dep->scene3d->items()) {
-            int nj = j->data(0).toInt();
-            if (ni == nj) {
-                j->setSelected(true);
-            }
-        }
-    }
-    dep->basculeSelectionChanged(true);
-}
-
-void MainWindow::couleurChoisie (QColor color)
-{
-    if (!dep)
-        return;
-
-    if (!color.isValid())
-        return;
-
-    bool ok = true;
-    for (auto && pc :dep->pool) {
-        if (pc.couleur == color) {
-            ui->statusbar->showMessage("Couleur déjà utilisée !");
-            ok = false;
-            break;
-        }
-    }
-    if (ok) {
-        Pool p1;
-        p1.couleur = color;
-        p1.elements = QList<int>();
-        dep->pool.push_back(p1);
-        int nb = ui->tableCouleurs->rowCount();
-        ui->tableCouleurs->setRowCount(nb+1);
-        QPixmap pixmap(15, 15);
-        pixmap.fill(color);
-        QLabel *l = new QLabel();
-        l->setPixmap(pixmap);
-        l->setAlignment(Qt::AlignVCenter|Qt::AlignHCenter);
-        l->setTextInteractionFlags(Qt::NoTextInteraction);
-        l->setFocusPolicy(Qt::NoFocus);
-        ui->tableCouleurs->setCellWidget(nb, 0, l);
-        QTableWidgetItem *tiN = new QTableWidgetItem("0");
-        ui->tableCouleurs->setItem(nb, 1, tiN);
-        QString s = QString("Piece #%1").arg(nb);
-        QTableWidgetItem *tiT = new QTableWidgetItem(s);
-        ui->tableCouleurs->setItem(nb, 2, tiT);
-        ui->tableCouleurs->selectRow(nb);
-        couleurClic(nb, 0);
-    }
-}
-
-void MainWindow::couleurNouveau()
-{
-    if(!dep)
-        return;
-
-    QColorDialog *dialog = new QColorDialog();
-    dialog->setOption(QColorDialog::NoEyeDropperButton);
-    connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
-    dialog->open();
-}
-
-void MainWindow::couleurSupprime()
-{
-    if(!dep)
-        return;
-
-    int n = ui->tableCouleurs->currentRow();
-
-    if (n < 1) {
-        return;
-    }
-
-    // mettre les facettes de cette couleur au défaut
-
-    // supprimer la couleur
-    ui->tableCouleurs->removeRow(n);
-    dep->pool.remove(n);
-
-    for (auto&& i : dep->meshModel->faces) {
-        if (i.col == n) {
-            i.col = 0;
-        } else if (i.col > n) {
-            i.col--;
-        }
-    }
-    for (auto&& i : dep->t2d) {
-        if (i->col == n) {
-            i->col = 0;
-        } else if (i->col > n) {
-            i->col--;
-        }
-    }
-
-    dep->dessineModele();
-    dep->scene2d->update();
-}
-
-void MainWindow::commencePose(QList<int>*pool, int n)
-{
-    if (!dep)
-        return;
-
-    Piece att;
-    att.attaches.push_back(Attache(-1, pool->takeFirst()));
-    int nF = att.attaches[0].vers;
-    att.premId = nF;
-    dep->pool[n].pieces.push_back(att);
-
-    TriangleItem *TI = dep->t2d[nF];
-    TI->estLie = false;
-    TI->estPrem = true;
-    TI->setFlag(QGraphicsItem::ItemIsMovable);
-    TI->setZValue(3);
-    QPolygonF P = TI->polygon();
-    QList<Ligne> L = dep->pool[n].pieces[0].lignes;
-    for (int i = 0; i < 3; i++) {
-        QPointF P1 = P[i];
-        QPointF P2 = P[next(i)];
-        Voisin V = dep->meshModel->faces[nF].voisins[i];
-        int nl = -1;
-        int il = 0;
-        for (auto&& R : L) {
-            if (   (eq(R.p1, P1) && eq(R.p2, P2))
-                || (eq(R.p1, P2) && eq(R.p2, P1))) {
-                nl = il;
-                break;
-            }
-            il++;
-        }
-        if (nl > -1) {
-            dep->pool[n].pieces[0].lignes[nl].nb++;
-        } else {
-            Ligne li (P1, P2, nF, V.nF, V.cop);
-            dep->pool[n].pieces[0].lignes.append(li);
-        }
-    }
-}
-
-void MainWindow::couleurAssemble()
-{
-    if(!dep)
-        return;
-
-    dep->scene2d->clearSelection();
-    if (ui->tableCouleurs->rowCount() < 2)
-        return;
-
-  dep->nums.clear();
-  for (int n = 1; n < ui->tableCouleurs->rowCount(); n++) {
-    if (dep->pool[n].elements.size() == 0)
-          continue;
-
-    QList<int> wPool = dep->pool[n].elements;
-
-    for (auto&& p : dep->pool[n].pieces) {
-        for (auto && piece : p.attaches) {
-            int wP = piece.vers;
-            TriangleItem *tSource = dep->t2d[wP];
-            for (auto && ti : tSource->childItems()) {
-                if (ti->data(0).toInt() < 0)
-                    delete(ti);
-            }
-        }
-    }
-
-    dep->pool[n].pieces.clear();
-
-    // Commencer avec la 1ère face
-    commencePose(&wPool, n);
-
-    int nbKO = 0;
-    bool ok = false;
-    int idParentCourant = -1;
-    while (wPool.size() > 0) { //  Boucler sur ce qui est posé
-        for (auto&& p : dep->pool[n].pieces) {
-            for (auto && piece : p.attaches) {
-                int wP = piece.vers;
-                TriangleItem *tSource = dep->t2d[wP];
-                tSource->setFiltersChildEvents(true);
-                if (piece.de == -1){
-                    idParentCourant = piece.vers;
-                    QPointF tpos = tSource->scenePos();
-                    tSource->setParentItem(0);
-                    tSource->setPos(tpos);
-                }
-                ok = false;
-                for(auto&& v : dep->meshModel->faces[wP].voisins) {
-                    if (wPool.contains(v.nF)) {
-                        p.attaches.push_back(Attache(wP, v.nF));
-                        TriangleItem *tCible = dep->t2d[v.nF];
-                        tCible->setVisible(true);
-                        tCible->estLie = true;
-                        tCible->estPrem = false;
-                        tCible->setParentItem(dep->t2d[idParentCourant]);
-                        tCible->setZValue(2);
-                        tCible->setFlag(QGraphicsItem::ItemIsMovable);
-                        QPolygonF pCible = tCible->polygon();
-                        QPolygonF pSource = tSource->polygon();
-                        QPointF ptOrig = pSource[v.id];
-                        QPointF delta = ptOrig - pCible[v.idx];
-                        QTransform trT;
-                        trT.translate(delta.x(), delta.y());
-                        pCible = trT.map(pCible);
-
-                        QTransform trR;
-                        qreal angle = calc_angle(
-                            ptOrig,
-                            pSource[next(v.id)],
-                            pCible[prev(v.idx)]);
-                        trR.translate(ptOrig.x(), ptOrig.y());
-                        trR.rotate(-angle);
-                        trR.translate(-ptOrig.x(), -ptOrig.y());
-
-                        tCible->setPolygon(trR.map(pCible));
-                        tCible->update();
-
-                        QPolygonF P = tCible->polygon();
-                        QList<Ligne> L = p.lignes;
-                        for (int i = 0; i < 3; i++) {
-                            QPointF P1 = P[i];
-                            QPointF P2 = P[next(i)];
-                            Voisin V = dep->meshModel->faces[v.nF].voisins[i];
-                            int nl = -1;
-                            int il = 0;
-                            for (auto&& R : L) {
-                                if (   (eq(R.p1, P1) && eq(R.p2, P2))
-                                    || (eq(R.p1, P2) && eq(R.p2, P1))) {
-                                    nl = il;
-                                    break;
-                                } else
-                                    il++;
-                            }
-                            if (nl > -1) {
-                                p.lignes[nl].nb++;
-                            } else {
-                                Ligne li (P1, P2, V.nF, V.pnF, V.cop);
-                                p.lignes.append(li);
-                            }
-                        }
-
-                        wPool.remove(wPool.indexOf(v.nF));
-                        ok = true;
-                        break;
-                    }
-                }
-                if (ok) {
-                    break;
-                }
-            }
-            if (ok) {
-                break;
-            }
-        }
-
-        if (!ok)
-            nbKO++;
-
-        if (nbKO > 1) { // créer nouvelle pièce
-            commencePose(&wPool, n);
-            nbKO = 0;
-            ok = false;
-        }
-    }
-
-    bool lb;
-    for (auto&& P : dep->pool[n].pieces) {
-        TriangleItem *ti0 = dep->t2d[P.attaches[0].vers];
-        for (auto&& L : P.lignes) {
-            TriangleLigneItem *li = new TriangleLigneItem(&L);
-            li->setData(1, QVariant::fromValue(0));
-            li->setParentItem(ti0);
-            if (L.nb == 1) {
-                int numC;
-                Nums num1 = Nums(L.id1, L.id2);
-                Nums num2 = Nums(L.id2, L.id1);
-                switch (cbLanguettes->currentIndex()) {
-                case 0:
-                case 1:
-                    lb = false;
-                    break;
-                case 2:
-                    lb = true;
-                }
-
-                //QPointF cLai(0,0);
-                TriangleLangItem *pLai = nullptr;
-                if (dep->nums.contains(num1)) {
-                    numC = dep->nums[dep->nums.indexOf(num1)].num;
-                    TriangleLangItem *lai = new TriangleLangItem(&L);
-                    lai->setParentItem(ti0);
-                    //lai->setParentItem(li);
-                    lai->setData(0, QVariant::fromValue(-1));
-                    lai->setData(1, QVariant(lb));
-                    li->setData(1, QVariant(lb));
-                } else
-                if (dep->nums.contains(num2)) {
-                    numC = dep->nums[dep->nums.indexOf(num2)].num;
-                    TriangleLangItem *lai = new TriangleLangItem(&L);
-                    lai->setParentItem(ti0);
-                    //lai->setParentItem(li);
-                    lai->setData(0, QVariant::fromValue(-1));
-                    lai->setData(1, QVariant(lb));
-                    li->setData(1, QVariant(lb));
-                } else {
-                    numC = dep->nums.size();
-                    num1.num = numC;
-                    switch (cbLanguettes->currentIndex()) {
-                    case 1 :
-                        num1.tlang = L10;
-                        lb = true;
-                        break;
-                    case 2 :
-                        num1.tlang = L11;
-                        lb = true;
-                        break;
-                    case 0 :
-                        num1.tlang = L00;
-                        lb = false;
-                    }
-                    dep->nums.append(num1);
-                    TriangleLangItem *lai = new TriangleLangItem(&L);
-                    lai->setParentItem(ti0);
-                    //lai->setParentItem(li);
-                    lai->setData(0, QVariant::fromValue(-1));
-                    lai->setData(1, QVariant(lb));
-                    li->setData(1, QVariant(lb));
-                    pLai = lai;
-                }
-                NumItem *numi = new NumItem(li, pLai, numC, dep->dYt, lb);
-                numi->setParentItem(ti0);
-
-            }
-        }
-    }
-  }
-}
-
-void MainWindow::couleurClic(int r, int c) {
-    if (c != 0 || !dep) {
-        return;
-    }
-
-    int nbF = dep->meshModel->faces.size();
-    bool need2dRefresh = false;
-
-    QList<int> LO;
-    for(auto &item:dep->scene3d->selectedItems()) {
-        LO.append(item->data(0).toInt());
-    }
-    std::sort(LO.begin(), LO.end());
-
-    for(int i : LO) {
-        //int i = item->data(0).toInt();
-        //TriangleItem *item = dep->t2d[i];
-        if ( i >= 0 && i < nbF) {
-            int aC = dep->meshModel->faces[i].col;
-            if (aC != r) {
-                dep->meshModel->faces[i].col = r;
-                dep->t2d[i]->col = r;
-                dep->t2d[i]->poolColor = dep->pool[r].couleur;
-                dep->t2d[i]->estLie = false;
-                dep->t2d[i]->estPrem = false;
-                //dep->t2d[i]->setParentItem(0);
-                dep->t2d[i]->setPos(dep->t2d[i]->mapToScene(dep->t2d[i]->pos()));
-                need2dRefresh = true;
-                dep->pool[r].elements.push_back(i);
-                auto aSupprimer = dep->pool[aC].elements.indexOf(i);
-                if (aSupprimer > -1) {
-                    dep->pool[aC].elements.remove(aSupprimer);
-                }
-                QTableWidgetItem *twia = new QTableWidgetItem(QString::number(dep->pool[aC].elements.size()));
-                ui->tableCouleurs->setItem(aC, 1, twia);
-            }
-        }
-    }
-    QTableWidgetItem *twi = new QTableWidgetItem(QString::number(dep->pool[r].elements.size()));
-    ui->tableCouleurs->setItem(r, 1, twi);
-
-    dep->dessineModele();
-    if (need2dRefresh)
-        dep->scene2d->update();
-}
-
-void MainWindow::tourner3DXD()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaX += dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::tourner3DXG()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaX -= dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::tourner3DYD()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaY += dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::tourner3DYG()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaY -= dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::tourner3DZD()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaZ += dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::tourner3DZG()
-{
-    if(!dep)
-        return;
-
-    dep->fThetaZ -= dep->fPas;
-    dep->dessineModele();
-}
-
-void MainWindow::zoom3DPlus()
-{
-    if(!dep)
-        return;
-
-    ui->vue3d->scale(1.1f, 1.1f);
-}
-
-void MainWindow::zoom3DMoins()
-{
-    if(!dep)
-        return;
-
-    ui->vue3d->scale(0.9f, 0.9f);
-}
-
-void MainWindow::zoom2DPlus()
-{
-    if(!dep)
-        return;
-
-    ui->vue2d->scale(1.1f, 1.1f);
-}
-
-void MainWindow::zoom2DMoins()
-{
-    if(!dep)
-        return;
-
-    ui->vue2d->scale(0.9f, 0.9f);
-}
-
-void MainWindow::Rot2D(int a) {
-    if (!dep)
-        return;
-
-    auto sI = dep->scene2d->selectedItems();
-    if (sI.size() < 1)
-        return;
-
-    int ni = sI[0]->data(0).toInt();
-    if (ni < 0)
-        return;
-
-    TriangleItem *ti = dep->t2d[ni];
-
-    QPolygonF p = ti->polygon();
-    QPointF c = centroid(p);
-    QTransform tr;
-    tr.translate(c.x(), c.y()).rotate(a).translate(-c.x(), -c.y());
-
-    if (!ti->estPrem && !ti->estLie) {
-        dep->t2d[ti->id]->setPolygon(tr.map(p));
-    } else {
-        if (ti->estLie) {
-            ti = dep->t2d[ti->parentItem()->data(0).toInt()];
-        }
-        // tourne la première face
-        p = ti->polygon();
-        ti->setPolygon(tr.map(p));
-
-        // tourne les enfants
-        dep->t2d[ti->id]->setPolygon(tr.map(p));
-
-        for (auto&& i : ti->childItems()) {
-            TriangleItem *te = qgraphicsitem_cast<TriangleItem*>(i);
-            if (te) {
-                if (te->col == ti->col){
-                    p = te->polygon();
-                    te->setPolygon(tr.map(p));
-                }
-                continue;
-            }
-
-            TriangleLigneItem * li = qgraphicsitem_cast<TriangleLigneItem*>(i);
-            if (li) {
-                QLineF lil = li->line();
-                li->setLine(tr.map(lil));
-                continue;
-            }
-
-            TriangleLangItem * tli = qgraphicsitem_cast<TriangleLangItem*>(i);
-            if (tli) {
-                QPainterPath path;
-                path = tli->path();
-                tli->setPath(tr.map(path));
-            }
-        }
-
-        for (auto&& i : ti->childItems()) {
-            NumItem *ci = qgraphicsitem_cast<NumItem*>(i);
-            if (ci) {
-                ci->tourne();
-            }
-        }
-    }
-}
-
-void MainWindow::Rot2DPlus()
-{
-    Rot2D(1);
-}
-
-void MainWindow::Rot2DMoins()
-{
-    Rot2D(-1);
+    scene2d = new DepliageScene(this);
+    ui->vue2d->setScene(scene2d);
 }

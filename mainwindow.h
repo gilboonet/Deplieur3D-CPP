@@ -1,22 +1,25 @@
+// Interface de l'application Deplieur
+//---------------------------------------------------------
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "mesh.h"
-#include "depliage.h"
-
 #include <QMainWindow>
+#include "depliage.h"
+#include "depliagescene.h"
+
 #include <QLineEdit>
 #include <QComboBox>
-#include <QGraphicsScene>
-
-class Depliage;
-
-
+#include <QLabel>
+//---------------------------------------------------------
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
 QT_END_NAMESPACE
+
+QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece);
+void bascule (QObject *);
+QLabel* creeColorLabel (QColor);
 
 class MainWindow : public QMainWindow
 {
@@ -25,52 +28,65 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    Depliage *dep;
+    Depliage dep;
+    DepliageScene *scene3d, *scene2d;
 
 private:
     Ui::MainWindow *ui;
-    void commencePose(QList<int>*, int);
-    void Rot2D(int);
-    QLineEdit *leEchelle;
-    QComboBox *cbLanguettes;
+    QLineEdit *leEchelle = nullptr;
+    QComboBox *cbLanguettes = nullptr;
+
+    QPainterPath construitChemin(QList<QLineF>);
 
 private slots:
-    void nouveau();
-    void quitter();
-    void exporter();
+    void resizeEvent (QResizeEvent*);
 
-    void couleurNouveau();
-    void couleurSupprime();
-    void couleurAssemble();
+    void nouveau ();
+    void exporte ();
+
+    void basculeCouleurs ();
+    void bascule3d ();
+    void bascule2d ();
 
     void couleurChoisie (QColor);
-    void couleurClic(int, int);
+    void couleurNouveau ();
 
+    void ajuste3D ();
+    void ajuste2D ();
 
-    void tourner3DXG();
-    void tourner3DXD();
-    void tourner3DYG();
-    void tourner3DYD();
-    void tourner3DZG();
-    void tourner3DZD();
-    void zoom3DPlus();
-    void zoom3DMoins();
+    void ajoutePage ();
+    void supprimePage ();
 
-    void zoom2DPlus();
-    void zoom2DMoins();
-    void Rot2DPlus();
-    void Rot2DMoins();
+    void couleurClic (int, int);
+    void changeCouleur (int);
+    void changeNBCouleur (int, int = 0);
+    void changeFaceCouleur (int, int);
+    void peutColorierFace (int);
+    void pieceAjouteFace (int, int);
+    void pieceEnleveFace (int, int);
+    void pieceCreeLignes (Piece*);
+    void pieceMAJ (Piece *);
+    void piecesMAJ ();
+    void face3dMAJ (Piece *, int);
 
-    void AfficheNbSel(QGraphicsScene *);
-    void changeCouleur(int);
+    void tourner3DXD ();
+    void tourner3DXG ();
+    void tourner3DYD ();
+    void tourner3DYG ();
+    void tourner3DZD ();
+    void tourner3DZG ();
+    void tourneModele (qreal, qreal);
+    void tourne2D (qreal);
+
+    void clicPli ();
+
     void changeEchelle();
-    void changeTypeLang(int);
-    void ajoutePage();
-    void supprimePage();
+    void changeMarge (int);
 
-public slots:
-    void SelectionDansScene3D();
-    void SelectionDansScene2D();
+    void changeTypeLang (int);
+    void basculeLanguette(int, int);
+
+    void hoverOn(int);
+    void hoverOff(int);
 };
-
 #endif // MAINWINDOW_H

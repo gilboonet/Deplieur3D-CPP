@@ -1,7 +1,117 @@
+// Données d'un triangle
+//---------------------------------------------------------
 #include "facette.h"
 
-facette::facette() {}
-facette::facette(vec3d a, vec3d b, vec3d c, int ai, int bi, int ci) {
+#include <QString>
+#include <QStringList>
+#include <QTextStream>
+//---------------------------------------------------------
+Voisin::Voisin () {}
+Voisin::Voisin (int id, int pnF, int nF, int idx, int cop)
+    : id(id), pnF(pnF), nF(nF), idx(idx), cop(cop) {}
+//---------------------------------------------------------
+Ligne::Ligne () {}
+Ligne::Ligne(QPointF p1, QPointF p2, int id1, int id2, int cop)
+    : p1(p1), p2(p2), id1(id1), id2(id2), cop(cop), nb(1) {}
+
+bool Ligne::operator==(const Ligne &l) const
+{
+    return ((this->id1 == l.id1) && (this->id2 == l.id2));
+}
+//---------------------------------------------------------
+Nums::Nums () {}
+Nums::Nums (int n1, int n2) : id1(n1), id2(n2) {}
+Nums::Nums (int n1, int n2, int num) : id1(n1), id2(n2), num(num) {}
+bool Nums::operator==(const Nums &n) const {
+    return
+        ((this->id1 == n.id1) && (this->id2 == n.id2))
+     || ((this->id1 == n.id2) && (this->id2 == n.id1));
+}
+//---------------------------------------------------------
+QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece) {
+    QList<QLineF> lLignes;
+    for (auto&& e : piece->lignes) {
+        if (e.nb == 1)
+            lLignes << QLineF (e.p1, e.p2);
+    }
+
+    QList<QList<QPointF>> liste;
+
+    while (lLignes.size() > 0) {
+        QPointF premPoint = lLignes.first().p1();
+        QPointF dernPoint = lLignes.first().p2();
+        QList<QPointF> lPoints;
+        lPoints << premPoint;
+        lPoints << dernPoint;
+        lLignes.removeFirst();
+
+        while ((lLignes.size() > 0) && !eq(premPoint, dernPoint)) {
+            for (QList<QLineF>::const_iterator i = lLignes.constBegin(); i != lLignes.constEnd(); i++) {
+                QLineF l = *i;
+                if (eq(l.p1(), premPoint)) {
+                    premPoint = l.p2();
+                    lPoints.prepend(premPoint);
+                    lLignes.erase(i);
+                    break;
+                } else if (eq(l.p2(), premPoint)) {
+                    premPoint = l.p1();
+                    lPoints.prepend(premPoint);
+                    lLignes.erase(i);
+                    break;
+                } else if (eq(l.p1(), dernPoint)) {
+                    dernPoint = l.p2();
+                    lPoints.append(dernPoint);
+                    lLignes.erase(i);
+                    break;
+                } else if (eq(l.p2(), dernPoint)) {
+                    dernPoint = l.p1();
+                    lPoints.append(dernPoint);
+                    lLignes.erase(i);
+                    break;
+                }
+            }
+        }
+        liste.push_back(lPoints);
+    }
+    return liste;
+}
+//---------------------------------------------------------
+void Piece::pieceConstruitBord () {
+    // construction du polygone
+    QList<QList<QPointF>> lPoints = PtsDepuisLignesDeCoupe (this);
+    QList<QPolygonF> qpolys;
+    QPolygonF qpoly = QPolygon();
+    int nPlusGrand = 0;
+    int i = 0;
+    for (auto&& lp : lPoints) {
+        QPolygonF p = QPolygonF(lp);
+        qpolys.push_back(p);
+        QRectF bPoly = qpoly.boundingRect();
+        QRectF pPoly = p.boundingRect();
+        if ((pPoly.width() > bPoly.width()) || (pPoly.height() > bPoly.height())) {
+            qpoly = p;
+            nPlusGrand = i;
+        }
+        i++;
+    }
+
+    i=0;
+    for (auto&& qp : qpolys) {
+        if (i != nPlusGrand) {
+            qpoly = qpoly.subtracted(qp);
+        }
+        i++;
+    }
+
+    bord->setPolygon(qpoly);
+}
+//---------------------------------------------------------
+Facette::Facette() {
+    id = -1;
+    col = -1;
+}
+
+Facette::Facette (vec3d a, vec3d b, vec3d c, int ai, int bi, int ci) {
     p[0] = a;
     p[1] = b;
     p[2] = c;
@@ -10,7 +120,7 @@ facette::facette(vec3d a, vec3d b, vec3d c, int ai, int bi, int ci) {
     pi[2] = ci;
 }
 
-Triangle2d facette::d2ize() {
+Triangle2d Facette::d2ize () {
     vec3d d1 = this->p[1].Vector_Sub(this->p[0]);
     vec3d d2 = this->p[2].Vector_Sub(this->p[0]);
 
@@ -22,14 +132,18 @@ Triangle2d facette::d2ize() {
         sqrt((d2.x * d2.x) +(d2.y * d2.y) +(d2.z * d2.z) -(P2x * P2x))
         );
 
-    return Triangle2d({P0, P1, P2});
+    return Triangle2d ({P0, P1, P2});
 }
 
-vec3d facette::point(const int n) {
+QPolygonF Facette::toPolygon () {
+    return QPolygonF ({p[0].toPointF(), p[1].toPointF(), p[2].toPointF()});
+}
+
+vec3d Facette::point (const int n) {
     return p[n];
 }
 
-bool facette::eq3(facette t2, int n) {
+bool Facette::eq3 (Facette t2, int n) {
     QVector3D pt = t2.p[n].toVector3D();
 
     bool r = pt.distanceToPoint(this->p[0].toVector3D()) >= 1.0f
@@ -39,7 +153,7 @@ bool facette::eq3(facette t2, int n) {
     return r;
 }
 
-qreal facette::isCoplanar(vec3d p) {
+qreal Facette::isCoplanar (vec3d p) {
     vec3d v1 = this->p[1].Vector_Sub(this->p[0]);
     vec3d v2 = this->p[2].Vector_Sub(this->p[0]);
 
@@ -58,8 +172,7 @@ qreal facette::isCoplanar(vec3d p) {
 //--------------------------------------------------//
 // from https://www.youtube.com/watch?v=ih20l3pJoeU //
 //--------------------------------------------------//
-int facette::ClipAgainstPlane(vec3d plane_p, vec3d plane_n, facette& in_tri, facette& out_tri1, facette& out_tri2)
-{
+int Facette::ClipAgainstPlane (vec3d plane_p, vec3d plane_n, Facette& in_tri, Facette& out_tri1, Facette& out_tri2) {
     // Make sure plane normal is indeed normal
     plane_n = plane_n.Vector_Normalise();
 
@@ -91,16 +204,14 @@ int facette::ClipAgainstPlane(vec3d plane_p, vec3d plane_n, facette& in_tri, fac
     // smaller output triangles if required. There are four possible
     // outcomes...
 
-    if (nInsidePointCount == 0)
-    {
+    if (nInsidePointCount == 0) {
         // All points lie on the outside of plane, so clip whole triangle
         // It ceases to exist
 
         return 0;   // No returned triangles are valid
     }
 
-    if (nInsidePointCount == 3)
-    {
+    if (nInsidePointCount == 3) {
         // All points lie on the inside of plane, so do nothing
         // and allow the triangle to simply pass through
         out_tri1 = in_tri;
@@ -108,8 +219,7 @@ int facette::ClipAgainstPlane(vec3d plane_p, vec3d plane_n, facette& in_tri, fac
         return 1;   // Just the one returned original triangle is valid
     }
 
-    if (nInsidePointCount == 1 && nOutsidePointCount == 2)
-    {
+    if (nInsidePointCount == 1 && nOutsidePointCount == 2) {
         // Triangle should be clipped. As two points lie outside
         // the plane, the triangle simply becomes a smaller triangle
 
@@ -127,8 +237,7 @@ int facette::ClipAgainstPlane(vec3d plane_p, vec3d plane_n, facette& in_tri, fac
         return 1; // Return the newly formed single triangle
     }
 
-    if (nInsidePointCount == 2 && nOutsidePointCount == 1)
-    {
+    if (nInsidePointCount == 2 && nOutsidePointCount == 1) {
         // Triangle should be clipped. As two points lie inside the plane,
         // the clipped triangle becomes a "quad". Fortunately, we can
         // represent a quad with two new triangles
