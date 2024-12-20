@@ -21,6 +21,8 @@ public:
     int margeId; // 0 : sans - 1 : Cricut - 2 : Brother - 3 : Silhouette
     int typeLang; // 0, 1 ou 2
     QGraphicsRectItem *pageTemoin = nullptr;
+    int faceCourante = -1;
+    int dernFace = -1;
 
 signals:
     void changeCouleur (int);

@@ -11,6 +11,8 @@
 #include "svg.hpp"
 
 #include <QToolBar>
+#include <QToolButton>
+#include <QMenu>
 #include <QTableWidgetItem>
 #include <QColorDialog>
 #include <QFileDialog>
@@ -70,16 +72,12 @@ void MainWindow::changeEchelle()
                 QTransform transform;
                 transform.scale(n, n);
                 t->setPolygon(transform.map(t->polygon()));
-                //t->setScale(n);
             }
-            //PiecePolygonItem *p = qgraphicsitem_cast<PiecePolygonItem*>(i);
-            //if (p)
-            //    i->setScale(n);
         }
         piecesMAJ();
     }
     vec3d d = dep.dim.Vector_Mul(50*n);
-    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 2).arg(d.y, 0, 'f', 2).arg(d.z, 0, 'f', 2));
+    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 }
 
 void MainWindow::changeMarge (int index) {
@@ -121,9 +119,14 @@ void MainWindow::basculeLanguette(int id1, int id2) {
 
 void MainWindow::hoverOn(int faceId)
 {
+    for (auto && f : dep.faces){
+        if (f.triangleItem->hoverOn){
+            f.triangleItem->hoverOn = false;
+            f.triangleItem->setVisible(false);
+        }
+    }
     dep.faces[faceId].triangleItem->hoverOn = true;
     dep.faces[faceId].triangleItem->setVisible(true);
-    dep.faces[faceId].triangleItem->setZValue(5);
 }
 
 void MainWindow::hoverOff(int faceId)
@@ -255,8 +258,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
     if (piece->nb == 0) { // piece vide -> créer groupe + ajouter 1ère face
         if (!piece->bord) {
             piece->bord = new PiecePolygonItem(scene2d, piece->couleur);
-            if (dep.echelle != 1)
-                piece->bord->setScale(dep.echelle);
+            //if (dep.echelle != 1)
+            //    piece->bord->setScale(dep.echelle);
         }
 
         tCible->setParentItem(piece->bord);
@@ -270,24 +273,26 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         tCible->col = pieceId;
         tCible->pieceCouleur = piece->couleur;
         piece->elements.append(faceId);
+        Attache att(-1, faceId);
+        piece->elements2.append(att);
         ok = true;
     } else {
         // piece non vide -> chercher voisin
         // -> si trouvé : lier face avec voisin + ajouter face
         bool voisinTrouve = false;
         Voisin *vT;
-        for (auto&& i : piece->elements) {
-            for (auto && v : dep.faces[i].voisins) {
-                if (v.nF == faceId) {
-                    voisinTrouve = true;
-                    vT = &v;
-                    break;
+        if (scene3d->dernFace > -1) {
+            auto&& i = dep.faces[scene3d->dernFace];
+            if (i.col == ui->tableCouleurs->currentRow()) {
+                for (auto && v : dep.faces[scene3d->dernFace].voisins) {
+                    if (v.nF == faceId) {
+                        voisinTrouve = true;
+                        vT = &v;
+                        break;
+                    }
                 }
             }
-            if (voisinTrouve)
-                break;
         }
-
         if (voisinTrouve) {
             ui->statusbar->showMessage("Ok");
             tSource = dep.faces[vT->pnF].triangleItem;
@@ -318,6 +323,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             tCible->col = pieceId;
             tCible->pieceCouleur = piece->couleur;
             piece->elements.append(faceId);
+            Attache att(scene3d->dernFace, faceId);
+            piece->elements2.append(att);
             ok = true;
         }
         else {
@@ -381,6 +388,8 @@ void MainWindow::peutColorierFace (int faceId) {
     Facette *facette = &(dep.faces[faceId]);
     int coul = ui->tableCouleurs->currentRow();
 
+    qDebug() << scene3d->dernFace << scene3d->faceCourante;
+
     // SI COUL = 0
     // -> SI COUL FACE = 0 -> ne rien faire
     // ----> SINON ENLEVER FACE DE SA PIECE ACTUELLE
@@ -439,7 +448,7 @@ void MainWindow::exporte () {
     for (auto && p : dep.pieces) {
         if (!p.bord)
             continue;
-        int x = p.bord->x() / dep.dimPage.x();
+        int x = p.bord->x() / (dep.dimPage.x()+10);
         if (x > maxP)
             maxP = x;
     }
@@ -767,55 +776,109 @@ void MainWindow::couleurNouveau () {
     dialog->open();
 }
 
+void MainWindow::demo() {
+
+    // libere memoire
+    dep.nums.clear();
+    dep.pieces.clear();
+    dep.faces.clear();
+    dep = Depliage();
+    dep.ModeleOK = true;
+    dep.echelle = 1;
+    dep.fPas = 0.1;
+    scene2d->nbPages = 1;
+    leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+    setWindowTitle("Deplieur [Modele Demo]");
+    demoMode = true;
+    dep.chargeFichierOBJ(m_demoFichier->downloadedData());
+    chargeFichier();
+}
+
 void MainWindow::nouveau () {
     // Nouveau projet : choisit un fichier .obj et le charge
     auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
         if (!fileName.isEmpty()) {
             // Use fileName and fileContent
+            dep.nums.clear();
+            dep.pieces.clear();
+            dep.faces.clear();
             dep = Depliage();
             dep.ModeleOK = true;
+            scene3d->itemColorId = -1;
+            scene3d->itemColor = Qt::white;
+            delete(scene2d->pageTemoin);
             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
             QFileInfo f(fileName);
             setWindowTitle("Deplieur [" + f.fileName() + "]");
             dep.chargeFichierOBJ(fileContent);
-
-            Piece p0;
-            p0.id = 0;
-            p0.couleur = Qt::white;
-            p0.nb = dep.faces.size();
-            dep.pieces.append(p0);
-
-            changeNBCouleur(0);
-            ui->tableCouleurs->setRowCount(1);
-            dep.dessineModele(scene3d);
-            connect(scene3d, &DepliageScene::changeCouleur, this, &MainWindow::changeCouleur);
-            connect(scene3d, &DepliageScene::changeNBCouleur, this, &MainWindow::changeNBCouleur);
-            connect(scene3d, &DepliageScene::changeFaceCouleur, this, &MainWindow::changeFaceCouleur);
-            connect(ui->vue3d, &DepliageVue3d::tourneModele, this, &MainWindow::tourneModele);
-            connect(ui->vue2d, &DepliageVue2d::tourne2D, this, &MainWindow::tourne2D);
-            connect(scene3d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
-            connect(scene3d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
-            connect(scene2d, &DepliageScene::basculeLanguette, this, &MainWindow::basculeLanguette);
-            connect(scene3d, &DepliageScene::hoverOn, this, &MainWindow::hoverOn);
-            connect(scene3d, &DepliageScene::hoverOff, this, &MainWindow::hoverOff);
-
-            //connect(scene2d, &DepliageScene::selectionChanged, this, &MainWindow::clicPli);
-
-            scene2d->nbPages = 1;
-            dep.creeFaces2d(scene2d);
-            dep.trouveVoisinage();
-
-            //connect(dep->scene2d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
-            //dep.basculeSelectionChanged(true);
-
-            vec3d d = dep.dim.Vector_Mul(50);
-            ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
-
-            ajuste3D();
-            ajuste2D();
+            chargeFichier();
         }
     };
     QFileDialog::getOpenFileContent("fichier OBJ (*.obj)",  fileContentReady);
+}
+
+void MainWindow::chargeFichier() {
+    Piece p0;
+    p0.id = 0;
+    p0.couleur = Qt::white;
+    p0.nb = dep.faces.size();
+    dep.pieces.append(p0);
+
+    changeNBCouleur(0);
+    ui->tableCouleurs->setRowCount(1);
+    dep.dessineModele(scene3d);
+    connect(scene3d, &DepliageScene::changeCouleur, this, &MainWindow::changeCouleur);
+    connect(scene3d, &DepliageScene::changeNBCouleur, this, &MainWindow::changeNBCouleur);
+    connect(scene3d, &DepliageScene::changeFaceCouleur, this, &MainWindow::changeFaceCouleur);
+    connect(ui->vue3d, &DepliageVue3d::tourneModele, this, &MainWindow::tourneModele);
+    connect(ui->vue2d, &DepliageVue2d::tourne2D, this, &MainWindow::tourne2D);
+    connect(scene3d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
+    connect(scene3d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
+    connect(scene2d, &DepliageScene::basculeLanguette, this, &MainWindow::basculeLanguette);
+    connect(scene3d, &DepliageScene::hoverOn, this, &MainWindow::hoverOn);
+    connect(scene3d, &DepliageScene::hoverOff, this, &MainWindow::hoverOff);
+
+    //connect(scene2d, &DepliageScene::selectionChanged, this, &MainWindow::clicPli);
+
+    scene2d->nbPages = 1;
+    dep.creeFaces2d(scene2d);
+    dep.trouveVoisinage();
+
+    //connect(dep->scene2d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
+    //dep.basculeSelectionChanged(true);
+
+    vec3d d = dep.dim.Vector_Mul(50);
+    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
+
+    ajuste3D();
+    //if (!demoMode)
+        ajuste2D();
+}
+
+void MainWindow::lanceDemo1() { lanceDemo("teteAnubisH20_2C"); }
+void MainWindow::lanceDemo2() { lanceDemo("Seth254"); }
+void MainWindow::lanceDemo3() { lanceDemo("bunny146"); }
+void MainWindow::lanceDemo4() { lanceDemo("buste_cheval120"); }
+void MainWindow::lanceDemo5() { lanceDemo("chat234"); }
+void MainWindow::lanceDemo6() { lanceDemo("chat310"); }
+void MainWindow::lanceDemo7() { lanceDemo("chien354"); }
+void MainWindow::lanceDemo8() { lanceDemo("fauconM300"); }
+void MainWindow::lanceDemo9() { lanceDemo("girafe464"); }
+void MainWindow::lanceDemo10() { lanceDemo("gorille500"); }
+void MainWindow::lanceDemo11() { lanceDemo("moai156"); }
+void MainWindow::lanceDemo12() { lanceDemo("moai312"); }
+void MainWindow::lanceDemo13() { lanceDemo("oeuf220"); }
+void MainWindow::lanceDemo14() { lanceDemo("panthere500"); }
+void MainWindow::lanceDemo15() { lanceDemo("tdy236"); }
+void MainWindow::lanceDemo16() { lanceDemo("teteLion358"); }
+//void MainWindow::lanceDemo17() { lanceDemo(""); }
+//void MainWindow::lanceDemo18() { lanceDemo(""); }
+//void MainWindow::lanceDemo19() { lanceDemo(""); }
+
+void MainWindow::lanceDemo(QString chUrl) {
+    QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
+    m_demoFichier = new FileDownloader(demoUrl, this);
+    connect(m_demoFichier, &FileDownloader::downloaded, this, &MainWindow::demo);
 }
 
 // CONSTRUCTEUR
@@ -833,6 +896,78 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tbMain->addAction(ui->actionSauver);
     tbMain->addAction(ui->actionExporter);
     tbMain->addAction(ui->actionQuitter);
+
+    QMenu *menu = new QMenu();
+    QAction *actionDemo1 = new QAction("Tete Anubis 102", this);
+    connect(actionDemo1, &QAction::triggered, this, &MainWindow::lanceDemo1);
+    menu->addAction(actionDemo1);
+
+    QAction *actionDemo2 = new QAction("Buste Seth 254", this);
+    connect(actionDemo2, &QAction::triggered, this, &MainWindow::lanceDemo2);
+    menu->addAction(actionDemo2);
+
+    QAction *actionDemo3 = new QAction("Lapin Boston 146", this);
+    connect(actionDemo3, &QAction::triggered, this, &MainWindow::lanceDemo3);
+    menu->addAction(actionDemo3);
+
+    QAction *actionDemo4 = new QAction("Buste cheval 120", this);
+    connect(actionDemo4, &QAction::triggered, this, &MainWindow::lanceDemo4);
+    menu->addAction(actionDemo4);
+
+    QAction *actionDemo5 = new QAction("Chat 234", this);
+    connect(actionDemo5, &QAction::triggered, this, &MainWindow::lanceDemo5);
+    menu->addAction(actionDemo5);
+
+    QAction *actionDemo6 = new QAction("Chat 310", this);
+    connect(actionDemo6, &QAction::triggered, this, &MainWindow::lanceDemo6);
+    menu->addAction(actionDemo6);
+
+    QAction *actionDemo7 = new QAction("Chien 354", this);
+    connect(actionDemo7, &QAction::triggered, this, &MainWindow::lanceDemo7);
+    menu->addAction(actionDemo7);
+
+    QAction *actionDemo8 = new QAction("Faucon Maltais 300", this);
+    connect(actionDemo8, &QAction::triggered, this, &MainWindow::lanceDemo8);
+    menu->addAction(actionDemo8);
+
+    QAction *actionDemo9 = new QAction("Girafe 464", this);
+    connect(actionDemo9, &QAction::triggered, this, &MainWindow::lanceDemo9);
+    menu->addAction(actionDemo9);
+
+    QAction *actionDemo10 = new QAction("Gorille 500", this);
+    connect(actionDemo10, &QAction::triggered, this, &MainWindow::lanceDemo10);
+    menu->addAction(actionDemo10);
+
+    QAction *actionDemo11 = new QAction("Moaï 156", this);
+    connect(actionDemo11, &QAction::triggered, this, &MainWindow::lanceDemo11);
+    menu->addAction(actionDemo11);
+
+    QAction *actionDemo12 = new QAction("Moaï 312", this);
+    connect(actionDemo12, &QAction::triggered, this, &MainWindow::lanceDemo12);
+    menu->addAction(actionDemo12);
+
+    QAction *actionDemo13 = new QAction("Oeuf 220", this);
+    connect(actionDemo13, &QAction::triggered, this, &MainWindow::lanceDemo13);
+    menu->addAction(actionDemo13);
+
+    QAction *actionDemo14 = new QAction("Panthère 500", this);
+    connect(actionDemo14, &QAction::triggered, this, &MainWindow::lanceDemo14);
+    menu->addAction(actionDemo14);
+
+    QAction *actionDemo15 = new QAction("Tdy 236", this);
+    connect(actionDemo15, &QAction::triggered, this, &MainWindow::lanceDemo15);
+    menu->addAction(actionDemo15);
+
+    QAction *actionDemo16 = new QAction("Tête Lion 358", this);
+    connect(actionDemo16, &QAction::triggered, this, &MainWindow::lanceDemo16);
+    menu->addAction(actionDemo16);
+
+    QToolButton* toolButton = new QToolButton();
+    toolButton->setIcon(QIcon(":/resources/note_add.png"));
+    toolButton->setToolTip("Demos");
+    toolButton->setMenu(menu);
+    toolButton->setPopupMode(QToolButton::InstantPopup);
+    tbMain->addWidget(toolButton);
 
     tbMain->addSeparator();
     tbMain->addAction(ui->actionBasculeCouleurs);

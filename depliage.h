@@ -21,7 +21,7 @@ public:
     int prochainNum = 0;
     QList<Nums> nums;
     qreal echelle = 1;
-    static constexpr float fPas = 0.15f;
+    float fPas = 0.1f;
     float fThetaX;
     float fThetaY;
     float fThetaZ;

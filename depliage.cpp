@@ -229,9 +229,11 @@ void Depliage::creeFaces2d (DepliageScene *scene2d) {
     transform.scale(px2cm, px2cm);
 
     scene2d->clear();
+    scene2d->pageTemoin = nullptr;
     for (auto&& face : faces) {
         QPolygonF poly = transform.map(face.triangle2d.toPolygon());
         poly.translate(-poly.boundingRect().left(), -poly.boundingRect().top());
+        delete face.triangleItem;
         face.triangleItem = new TriangleItem2d(scene2d, pieces[face.col].couleur , poly, face.id, face.col);
     }
     scene2d->update();

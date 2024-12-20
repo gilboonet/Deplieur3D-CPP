@@ -6,6 +6,7 @@
 #include <QMainWindow>
 #include "depliage.h"
 #include "depliagescene.h"
+#include "filedownloader.h"
 
 #include <QLineEdit>
 #include <QComboBox>
@@ -30,6 +31,8 @@ public:
     ~MainWindow();
     Depliage dep;
     DepliageScene *scene3d, *scene2d;
+    FileDownloader *m_demoFichier;
+    bool demoMode = false;
 
 private:
     Ui::MainWindow *ui;
@@ -42,6 +45,29 @@ private slots:
     void resizeEvent (QResizeEvent*);
 
     void nouveau ();
+    void demo ();
+    void chargeFichier ();
+    void lanceDemo (QString);
+    void lanceDemo1 ();
+    void lanceDemo2 ();
+    void lanceDemo3 ();
+    void lanceDemo4 ();
+    void lanceDemo5 ();
+    void lanceDemo6 ();
+    void lanceDemo7 ();
+    void lanceDemo8 ();
+    void lanceDemo9 ();
+    void lanceDemo10 ();
+    void lanceDemo11 ();
+    void lanceDemo12 ();
+    void lanceDemo13 ();
+    void lanceDemo14 ();
+    void lanceDemo15 ();
+    void lanceDemo16 ();
+    //void lanceDemo17 ();
+    //void lanceDemo18 ();
+    //void lanceDemo19 ();
+
     void exporte ();
 
     void basculeCouleurs ();

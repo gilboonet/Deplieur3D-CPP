@@ -1,4 +1,5 @@
 #include "piecenumitem.h"
+#include "piecelangitem.h"
 
 PieceNumItem::PieceNumItem() {}
 

@@ -28,6 +28,14 @@ bool Nums::operator==(const Nums &n) const {
      || ((this->id1 == n.id2) && (this->id2 == n.id1));
 }
 //---------------------------------------------------------
+Attache::Attache() {}
+Attache::Attache(int vers) : vers(vers) {}
+Attache::Attache(int de, int vers) : de(de), vers(vers) {}
+bool Attache::operator==(const Attache &a) const
+{
+    return this->vers == a.vers;
+}
+//---------------------------------------------------------
 QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece) {
     QList<QLineF> lLignes;
     for (auto&& e : piece->lignes) {

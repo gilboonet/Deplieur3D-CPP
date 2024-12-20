@@ -475,6 +475,18 @@
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
+  <action name="actionDemo">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/note_add.png</normaloff>:/resources/note_add.png</iconset>
+   </property>
+   <property name="text">
+    <string>Demo</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

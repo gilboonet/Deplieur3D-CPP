@@ -9,9 +9,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#find_package(Qt6 REQUIRED COMPONENTS Svg)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Network)
 
 set(TS_FILES Deplieur_fr_FR.ts)
 
@@ -42,6 +42,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         pieceligneitem.h pieceligneitem.cpp
         piecelangitem.h piecelangitem.cpp
         piecenumitem.h piecenumitem.cpp
+        filedownloader.cpp filedownloader.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Deplieur APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -66,7 +67,7 @@ else()
 endif()
 
 target_link_libraries(Deplieur PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-#target_link_libraries(Deplieur PRIVATE Qt6::Svg)
+target_link_libraries(Deplieur PRIVATE Qt6::Network)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

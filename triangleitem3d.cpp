@@ -2,7 +2,7 @@
 //---------------------------------------------------------
 #include "triangleitem3d.h"
 
-#include <QPen>
+//#include <QPen>
 //---------------------------------------------------------
 TriangleItem3d::TriangleItem3d () {
     pieceCouleur = QColor();
@@ -29,8 +29,8 @@ void TriangleItem3d::paint (QPainter *painter, const QStyleOptionGraphicsItem *o
     if (isSelected())
         opt.state = QStyle::State_None;
 
-    setPen(QPen());
-    setBrush(QBrush(this->pieceCouleur, this->hoverOn ? Qt::Dense3Pattern: Qt::SolidPattern));
+    //setPen(QPen());
+    setBrush(QBrush(this->hoverOn ? this->pieceCouleur.darker() : this->pieceCouleur, Qt::SolidPattern));
 
     QGraphicsPolygonItem::paint(painter, &opt, widget);
 }
@@ -56,16 +56,18 @@ void TriangleItem3d::mousePressEvent (QGraphicsSceneMouseEvent *event) {
     //QGraphicsPolygonItem::mousePressEvent(event);
 }
 
-void TriangleItem3d::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
-{
+void TriangleItem3d::hoverEnterEvent(QGraphicsSceneHoverEvent *event) {
     this->hoverOn = true;
+    if (sceneD->faceCourante != this->id) {
+        sceneD->dernFace = sceneD->faceCourante;
+        sceneD->faceCourante = this->id;
+    }
     if (this->col > 0)
         emit sceneD->hoverOn(this->id);
     update();
 }
 
-void TriangleItem3d::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
-{
+void TriangleItem3d::hoverLeaveEvent(QGraphicsSceneHoverEvent *event) {
     this->hoverOn = false;
     emit sceneD->hoverOff(this->id);
     update();

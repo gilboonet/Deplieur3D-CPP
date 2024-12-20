@@ -67,12 +67,22 @@ public:
     bool eq3 (Facette, int);
 };
 //---------------------------------------------------------
+struct Attache {
+    int de;
+    int vers;
+    Attache();
+    Attache(int);
+    Attache(int, int);
+    bool operator== (const Attache&) const;
+};
+//---------------------------------------------------------
 struct Piece {
     int id;
     int nb;
     QColor couleur = QColor();
     QColor cDesign = QColor();
     QList<int> elements;
+    QList<Attache> elements2;
     PiecePolygonItem *bord = nullptr;
     QList<Ligne> lignes;
 
