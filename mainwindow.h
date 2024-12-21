@@ -38,6 +38,7 @@ private:
     Ui::MainWindow *ui;
     QLineEdit *leEchelle = nullptr;
     QComboBox *cbLanguettes = nullptr;
+    QComboBox *cbDemo = nullptr;
 
     QPainterPath construitChemin(QList<QLineF>);
 
@@ -47,27 +48,7 @@ private slots:
     void nouveau ();
     void demo ();
     void chargeFichier ();
-    void lanceDemo (QString);
-    void lanceDemo1 ();
-    void lanceDemo2 ();
-    void lanceDemo3 ();
-    void lanceDemo4 ();
-    void lanceDemo5 ();
-    void lanceDemo6 ();
-    void lanceDemo7 ();
-    void lanceDemo8 ();
-    void lanceDemo9 ();
-    void lanceDemo10 ();
-    void lanceDemo11 ();
-    void lanceDemo12 ();
-    void lanceDemo13 ();
-    void lanceDemo14 ();
-    void lanceDemo15 ();
-    void lanceDemo16 ();
-    //void lanceDemo17 ();
-    //void lanceDemo18 ();
-    //void lanceDemo19 ();
-
+    void lanceDemo (int);
     void exporte ();
 
     void basculeCouleurs ();

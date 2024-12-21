@@ -777,8 +777,6 @@ void MainWindow::couleurNouveau () {
 }
 
 void MainWindow::demo() {
-
-    // libere memoire
     dep.nums.clear();
     dep.pieces.clear();
     dep.faces.clear();
@@ -851,32 +849,16 @@ void MainWindow::chargeFichier() {
     ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 
     ajuste3D();
-    //if (!demoMode)
-        ajuste2D();
+    ajuste2D();
 }
 
-void MainWindow::lanceDemo1() { lanceDemo("teteAnubisH20_2C"); }
-void MainWindow::lanceDemo2() { lanceDemo("Seth254"); }
-void MainWindow::lanceDemo3() { lanceDemo("bunny146"); }
-void MainWindow::lanceDemo4() { lanceDemo("buste_cheval120"); }
-void MainWindow::lanceDemo5() { lanceDemo("chat234"); }
-void MainWindow::lanceDemo6() { lanceDemo("chat310"); }
-void MainWindow::lanceDemo7() { lanceDemo("chien354"); }
-void MainWindow::lanceDemo8() { lanceDemo("fauconM300"); }
-void MainWindow::lanceDemo9() { lanceDemo("girafe464"); }
-void MainWindow::lanceDemo10() { lanceDemo("gorille500"); }
-void MainWindow::lanceDemo11() { lanceDemo("moai156"); }
-void MainWindow::lanceDemo12() { lanceDemo("moai312"); }
-void MainWindow::lanceDemo13() { lanceDemo("oeuf220"); }
-void MainWindow::lanceDemo14() { lanceDemo("panthere500"); }
-void MainWindow::lanceDemo15() { lanceDemo("tdy236"); }
-void MainWindow::lanceDemo16() { lanceDemo("teteLion358"); }
-//void MainWindow::lanceDemo17() { lanceDemo(""); }
-//void MainWindow::lanceDemo18() { lanceDemo(""); }
-//void MainWindow::lanceDemo19() { lanceDemo(""); }
+void MainWindow::lanceDemo(int index) {
+    if (index == 0 )
+        return;
 
-void MainWindow::lanceDemo(QString chUrl) {
-    QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
+    QString chUrl = cbDemo->itemData(index).toString();
+    //QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
+    QUrl demoUrl(QString("modeles/%1.obj").arg(chUrl));
     m_demoFichier = new FileDownloader(demoUrl, this);
     connect(m_demoFichier, &FileDownloader::downloaded, this, &MainWindow::demo);
 }
@@ -897,77 +879,8 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tbMain->addAction(ui->actionExporter);
     tbMain->addAction(ui->actionQuitter);
 
-    QMenu *menu = new QMenu();
-    QAction *actionDemo1 = new QAction("Tete Anubis 102", this);
-    connect(actionDemo1, &QAction::triggered, this, &MainWindow::lanceDemo1);
-    menu->addAction(actionDemo1);
-
-    QAction *actionDemo2 = new QAction("Buste Seth 254", this);
-    connect(actionDemo2, &QAction::triggered, this, &MainWindow::lanceDemo2);
-    menu->addAction(actionDemo2);
-
-    QAction *actionDemo3 = new QAction("Lapin Boston 146", this);
-    connect(actionDemo3, &QAction::triggered, this, &MainWindow::lanceDemo3);
-    menu->addAction(actionDemo3);
-
-    QAction *actionDemo4 = new QAction("Buste cheval 120", this);
-    connect(actionDemo4, &QAction::triggered, this, &MainWindow::lanceDemo4);
-    menu->addAction(actionDemo4);
-
-    QAction *actionDemo5 = new QAction("Chat 234", this);
-    connect(actionDemo5, &QAction::triggered, this, &MainWindow::lanceDemo5);
-    menu->addAction(actionDemo5);
-
-    QAction *actionDemo6 = new QAction("Chat 310", this);
-    connect(actionDemo6, &QAction::triggered, this, &MainWindow::lanceDemo6);
-    menu->addAction(actionDemo6);
-
-    QAction *actionDemo7 = new QAction("Chien 354", this);
-    connect(actionDemo7, &QAction::triggered, this, &MainWindow::lanceDemo7);
-    menu->addAction(actionDemo7);
-
-    QAction *actionDemo8 = new QAction("Faucon Maltais 300", this);
-    connect(actionDemo8, &QAction::triggered, this, &MainWindow::lanceDemo8);
-    menu->addAction(actionDemo8);
-
-    QAction *actionDemo9 = new QAction("Girafe 464", this);
-    connect(actionDemo9, &QAction::triggered, this, &MainWindow::lanceDemo9);
-    menu->addAction(actionDemo9);
-
-    QAction *actionDemo10 = new QAction("Gorille 500", this);
-    connect(actionDemo10, &QAction::triggered, this, &MainWindow::lanceDemo10);
-    menu->addAction(actionDemo10);
-
-    QAction *actionDemo11 = new QAction("Moaï 156", this);
-    connect(actionDemo11, &QAction::triggered, this, &MainWindow::lanceDemo11);
-    menu->addAction(actionDemo11);
-
-    QAction *actionDemo12 = new QAction("Moaï 312", this);
-    connect(actionDemo12, &QAction::triggered, this, &MainWindow::lanceDemo12);
-    menu->addAction(actionDemo12);
-
-    QAction *actionDemo13 = new QAction("Oeuf 220", this);
-    connect(actionDemo13, &QAction::triggered, this, &MainWindow::lanceDemo13);
-    menu->addAction(actionDemo13);
-
-    QAction *actionDemo14 = new QAction("Panthère 500", this);
-    connect(actionDemo14, &QAction::triggered, this, &MainWindow::lanceDemo14);
-    menu->addAction(actionDemo14);
-
-    QAction *actionDemo15 = new QAction("Tdy 236", this);
-    connect(actionDemo15, &QAction::triggered, this, &MainWindow::lanceDemo15);
-    menu->addAction(actionDemo15);
-
-    QAction *actionDemo16 = new QAction("Tête Lion 358", this);
-    connect(actionDemo16, &QAction::triggered, this, &MainWindow::lanceDemo16);
-    menu->addAction(actionDemo16);
-
-    QToolButton* toolButton = new QToolButton();
-    toolButton->setIcon(QIcon(":/resources/note_add.png"));
-    toolButton->setToolTip("Demos");
-    toolButton->setMenu(menu);
-    toolButton->setPopupMode(QToolButton::InstantPopup);
-    tbMain->addWidget(toolButton);
+//    tbMain->addAction(ui->actionDemo);
+//    connect(ui->actionDemo, &QAction::triggered, this, &MainWindow::lanceDemo1);
 
     tbMain->addSeparator();
     tbMain->addAction(ui->actionBasculeCouleurs);
@@ -1013,6 +926,35 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     // Menu 3d
     QToolBar *tb3d = new QToolBar(this);
 
+    cbDemo = new QComboBox();
+    cbDemo->addItem("Choisir demo", QVariant(""));
+    cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
+    cbDemo->addItem("Chat 234", QVariant("chat234"));
+    cbDemo->addItem("Chat 310", QVariant("chat310"));
+    cbDemo->addItem("Cheval 430", QVariant("cheval430"));
+    cbDemo->addItem("Cheval Buste 120", QVariant("buste_cheval120"));
+    cbDemo->addItem("Chien 354", QVariant("chien354"));
+    cbDemo->addItem("Eléphant Assis 206", QVariant("elephantAssis206"));
+    cbDemo->addItem("Faucon Maltais 300", QVariant("fauconM300"));
+    cbDemo->addItem("Girafe 464", QVariant("girafe464"));
+    cbDemo->addItem("Gorille 500", QVariant("gorille500"));
+    cbDemo->addItem("Lapin Assis 192", QVariant("lapinAssis192"));
+    cbDemo->addItem("Lapin Boston 146", QVariant("bunny146"));
+    cbDemo->addItem("Lion Tête 358", QVariant("teteLion358"));
+    cbDemo->addItem("Main 200", QVariant("main200"));
+    cbDemo->addItem("Moaï 156", QVariant("moai156"));
+    cbDemo->addItem("Moaï 312", QVariant("moai312"));
+    cbDemo->addItem("Moineau 150", QVariant("moineau150"));
+    cbDemo->addItem("Oeuf 220", QVariant("oeuf220"));
+    cbDemo->addItem("Panthère 500", QVariant("panthere500"));
+    cbDemo->addItem("Tdy 236", QVariant("tdy236"));
+    cbDemo->addItem("Taureau 278", QVariant("taureau278"));
+    cbDemo->addItem("Seth Buste254", QVariant("seth254"));
+
+    cbDemo->setToolTip("Demos");
+    tb3d->addWidget(cbDemo);
+    connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
+
     tb3d->addAction(ui->actionXG);
     connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
     tb3d->addWidget(new QLabel("X"));
@@ -1033,11 +975,11 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tb3d->addAction(ui->actionZD);
     connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
 
-    tb3d->addSeparator();
-    tb3d->addAction(ui->actionZoomMoins);
+    //tb3d->addSeparator();
+    //tb3d->addAction(ui->actionZoomMoins);
     //connect(ui->actionZoomMoins, &QAction::triggered, this, &MainWindow::zoom3DMoins);
-    tb3d->addWidget(new QLabel("Zoom."));
-    tb3d->addAction(ui->actionZoomPlus);
+    //tb3d->addWidget(new QLabel("Zoom."));
+    //tb3d->addAction(ui->actionZoomPlus);
     //connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
 
     ui->verticalLayout3D->setMenuBar(tb3d);
