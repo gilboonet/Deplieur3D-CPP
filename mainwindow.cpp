@@ -155,10 +155,24 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
     Piece *piece = &(dep.pieces[pieceId]);
     Facette *facette = &(dep.faces[faceId]);
     TriangleItem2d *tCible = facette->triangleItem;
-    bool ok = false;
     QColor blanc = QColor(Qt::white);
+    bool ok = true;
+    for (auto && e : piece->elements2) {
+        if (e.de == faceId) {
+            ok = false;
+            break;
+        }
+    }
 
+    if (!ok) {
+        ui->statusbar->showMessage("Impossible !");
+        return;
+    }
+
+    ok = false;
     if (piece->elements.removeOne(faceId)) {
+        Attache att(faceId);
+        piece->elements2.removeOne(att);
         tCible->setParentItem(0);
         if (tCible->hoverOn)
             hoverOff(tCible->id);
@@ -192,6 +206,7 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
                 fI->update();
             }
         }
+        ui->statusbar->showMessage("Face enlevée !");
         scene3d->update();
     }
 }
@@ -326,6 +341,7 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             Attache att(scene3d->dernFace, faceId);
             piece->elements2.append(att);
             ok = true;
+            ui->statusbar->showMessage("Face ajoutée !");
         }
         else {
             ui->statusbar->showMessage("voisin non trouvé");
