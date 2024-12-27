@@ -76,7 +76,8 @@ void MainWindow::changeEchelle()
         }
         piecesMAJ();
     }
-    vec3d d = dep.dim.Vector_Mul(50*n);
+    dep.dim = dep.dim.Vector_Mul(n);
+    vec3d d = dep.dim;
     ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 }
 
@@ -861,7 +862,8 @@ void MainWindow::chargeFichier() {
     //connect(dep->scene2d, &DeplieurScene::changeCouleur, this, &MainWindow::changeCouleur);
     //dep.basculeSelectionChanged(true);
 
-    vec3d d = dep.dim.Vector_Mul(50);
+    dep.dim = dep.dim.Vector_Mul(50);
+    vec3d d = dep.dim;
     ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 
     ajuste3D();
