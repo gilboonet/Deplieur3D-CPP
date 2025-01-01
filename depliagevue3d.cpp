@@ -19,17 +19,17 @@ void DepliageVue3d::mousePressEvent (QMouseEvent *event) {
 }
 
 void DepliageVue3d::mouseReleaseEvent (QMouseEvent *event) {
-    if (event->button() == Qt::MiddleButton) {
+    //if (event->button() == Qt::MiddleButton) {
         _pan = false;
         setCursor (Qt::ArrowCursor);
         event->accept();
         return;
-    }
+    //}
     QGraphicsView::mouseReleaseEvent (event);
 }
 
 void DepliageVue3d::mouseMoveEvent (QMouseEvent *event) {
-    if (_pan) {
+    if (_pan) { // && (event->button() == Qt::MiddleButton)) {
         qreal dx = event->position().x() - _panStartX;
         qreal dy = event->position().y() - _panStartY;
         qreal adx = qFabs(dx);
