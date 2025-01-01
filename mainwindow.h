@@ -82,7 +82,7 @@ private slots:
     void tourner3DYG ();
     void tourner3DZD ();
     void tourner3DZG ();
-    void tourneModele (qreal, qreal);
+    void tourneModele (qreal, qreal, qreal);
     void tourne2D (qreal);
 
     void clicPli ();

@@ -645,9 +645,10 @@ void MainWindow::tourner3DZG () {
     dep.dessineModele(scene3d);
 }
 
-void MainWindow::tourneModele (qreal dZ, qreal dX) {
+void MainWindow::tourneModele (qreal dZ, qreal dX, qreal dY) {
     dep.fThetaZ += dZ;
     dep.fThetaX -= dX;
+    dep.fThetaY += dY;
     dep.dessineModele(scene3d);
 }
 
@@ -973,25 +974,25 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tb3d->addWidget(cbDemo);
     connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
 
-    tb3d->addAction(ui->actionXG);
-    connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
-    tb3d->addWidget(new QLabel("X"));
-    tb3d->addAction(ui->actionXD);
-    connect(ui->actionXD, &QAction::triggered, this, &MainWindow::tourner3DXD);
+    // tb3d->addAction(ui->actionXG);
+    // connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
+    // tb3d->addWidget(new QLabel("X"));
+    // tb3d->addAction(ui->actionXD);
+    // connect(ui->actionXD, &QAction::triggered, this, &MainWindow::tourner3DXD);
 
-    tb3d->addSeparator();
-    tb3d->addAction(ui->actionYG);
-    connect(ui->actionYG, &QAction::triggered, this, &MainWindow::tourner3DYG);
-    tb3d->addWidget(new QLabel("Y"));
-    tb3d->addAction(ui->actionYD);
-    connect(ui->actionYD, &QAction::triggered, this, &MainWindow::tourner3DYD);
+    // tb3d->addSeparator();
+    // tb3d->addAction(ui->actionYG);
+    // connect(ui->actionYG, &QAction::triggered, this, &MainWindow::tourner3DYG);
+    // tb3d->addWidget(new QLabel("Y"));
+    // tb3d->addAction(ui->actionYD);
+    // connect(ui->actionYD, &QAction::triggered, this, &MainWindow::tourner3DYD);
 
-    tb3d->addSeparator();
-    tb3d->addAction(ui->actionZG);
-    connect(ui->actionZG, &QAction::triggered, this, &MainWindow::tourner3DZG);
-    tb3d->addWidget(new QLabel("Z"));
-    tb3d->addAction(ui->actionZD);
-    connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
+    // tb3d->addSeparator();
+    // tb3d->addAction(ui->actionZG);
+    // connect(ui->actionZG, &QAction::triggered, this, &MainWindow::tourner3DZG);
+    // tb3d->addWidget(new QLabel("Z"));
+    // tb3d->addAction(ui->actionZD);
+    // connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
 
     //tb3d->addSeparator();
     //tb3d->addAction(ui->actionZoomMoins);
