@@ -237,75 +237,6 @@
     </font>
    </property>
   </action>
-  <action name="actionXG">
-   <property name="text">
-    <string>&lt;</string>
-   </property>
-   <property name="shortcut">
-    <string>W</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionXD">
-   <property name="text">
-    <string>&gt;</string>
-   </property>
-   <property name="shortcut">
-    <string>C</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionYG">
-   <property name="text">
-    <string>&lt;</string>
-   </property>
-   <property name="shortcut">
-    <string>T</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionYD">
-   <property name="text">
-    <string>&gt;</string>
-   </property>
-   <property name="shortcut">
-    <string>U</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionZG">
-   <property name="text">
-    <string>&lt;</string>
-   </property>
-   <property name="shortcut">
-    <string>A</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionZD">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>&gt;</string>
-   </property>
-   <property name="shortcut">
-    <string>E</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
   <action name="actionZoomMoins">
    <property name="text">
     <string>-</string>
@@ -345,17 +276,6 @@
    </property>
    <property name="toolTip">
     <string>Supprime Couleur</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
-  </action>
-  <action name="actionCouleurAssembler">
-   <property name="text">
-    <string>*</string>
-   </property>
-   <property name="toolTip">
-    <string>Assemble</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

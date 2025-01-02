@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QLabel>
+#include <QAbstractButton>
 //---------------------------------------------------------
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -43,10 +44,12 @@ private:
     QPainterPath construitChemin(QList<QLineF>);
 
 private slots:
-    void resizeEvent (QResizeEvent*);
+    void resizeEvent (QResizeEvent*) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
     void nouveau ();
     void demo ();
+    void doDemo ();
     void chargeFichier ();
     void lanceDemo (int);
     void exporte ();
@@ -76,12 +79,6 @@ private slots:
     void piecesMAJ ();
     void face3dMAJ (Piece *, int);
 
-    void tourner3DXD ();
-    void tourner3DXG ();
-    void tourner3DYD ();
-    void tourner3DYG ();
-    void tourner3DZD ();
-    void tourner3DZG ();
     void tourneModele (qreal, qreal, qreal);
     void tourne2D (qreal);
 

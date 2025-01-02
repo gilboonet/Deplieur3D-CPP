@@ -16,6 +16,7 @@
 #include <QTableWidgetItem>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QMessageBox>
 
 #include <QDebug>
 //---------------------------------------------------------
@@ -47,6 +48,32 @@ MainWindow::~MainWindow () {
 void MainWindow::resizeEvent (QResizeEvent* event) {
     ajuste3D();
     QMainWindow::resizeEvent(event);
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+
+    switch(event->key()) {
+    case Qt::Key_A :
+        tourneModele(dep.fPas, 0, 0);
+        return;
+    case Qt::Key_E :
+        tourneModele(-dep.fPas, 0, 0);
+        return;
+    case Qt::Key_W :
+        tourneModele(0, dep.fPas, 0);
+        return;
+    case Qt::Key_C :
+        tourneModele(0, -dep.fPas, 0);
+        return;
+    case Qt::Key_T :
+        tourneModele(0, 0, dep.fPas);
+        return;
+    case Qt::Key_U :
+        tourneModele(0, 0, -dep.fPas);
+        return;
+    }
+
+    QMainWindow::keyPressEvent (event);
 }
 
 void MainWindow::clicPli () {
@@ -597,54 +624,6 @@ void MainWindow::supprimePage () {
     }
 }
 
-void MainWindow::tourner3DXD () {
-    if (!dep.ModeleOK)
-        return;
-
-    dep.fThetaX += dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
-void MainWindow::tourner3DXG () {
-    if(!dep.ModeleOK)
-        return;
-
-    dep.fThetaX -= dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
-void MainWindow::tourner3DYD () {
-    if(!dep.ModeleOK)
-        return;
-
-    dep.fThetaY += dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
-void MainWindow::tourner3DYG () {
-    if(!dep.ModeleOK)
-        return;
-
-    dep.fThetaY -= dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
-void MainWindow::tourner3DZD () {
-    if(!dep.ModeleOK)
-        return;
-
-    dep.fThetaZ += dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
-void MainWindow::tourner3DZG () {
-    if(!dep.ModeleOK)
-        return;
-
-    dep.fThetaZ -= dep.fPas;
-    dep.dessineModele(scene3d);
-}
-
 void MainWindow::tourneModele (qreal dZ, qreal dX, qreal dY) {
     dep.fThetaZ += dZ;
     dep.fThetaX -= dX;
@@ -795,6 +774,37 @@ void MainWindow::couleurNouveau () {
 }
 
 void MainWindow::demo() {
+    if (dep.ModeleCharge) {
+        QMessageBox *msgBox = new QMessageBox(this);
+        msgBox->setAttribute(Qt::WA_DeleteOnClose);
+        msgBox->setIcon(QMessageBox::Question);
+        msgBox->setText("Charger ce modèle ?");
+        msgBox->setInformativeText("Attention, cela écrasera votre travail");
+        msgBox->setStandardButtons(QMessageBox::Open | QMessageBox::Cancel);
+        msgBox->setDefaultButton(QMessageBox::Cancel);
+        connect(msgBox, &QMessageBox::finished, this, [this](){
+            dep.nums.clear();
+            dep.pieces.clear();
+            dep.faces.clear();
+            dep = Depliage();
+            dep.ModeleOK = true;
+            dep.echelle = 1;
+            dep.fPas = 0.1;
+            scene2d->nbPages = 1;
+            leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+            setWindowTitle("Deplieur [Modele Demo]");
+            demoMode = true;
+            dep.chargeFichierOBJ(m_demoFichier->downloadedData());
+            chargeFichier();
+            dep.ModeleCharge = true;
+        });
+        msgBox->show();
+    }
+    else
+        doDemo();
+}
+
+void MainWindow::doDemo() {
     dep.nums.clear();
     dep.pieces.clear();
     dep.faces.clear();
@@ -808,6 +818,7 @@ void MainWindow::demo() {
     demoMode = true;
     dep.chargeFichierOBJ(m_demoFichier->downloadedData());
     chargeFichier();
+    dep.ModeleCharge = true;
 }
 
 void MainWindow::nouveau () {
@@ -828,6 +839,7 @@ void MainWindow::nouveau () {
             setWindowTitle("Deplieur [" + f.fileName() + "]");
             dep.chargeFichierOBJ(fileContent);
             chargeFichier();
+            dep.ModeleCharge = true;
         }
     };
     QFileDialog::getOpenFileContent("fichier OBJ (*.obj)",  fileContentReady);
@@ -898,9 +910,6 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tbMain->addAction(ui->actionExporter);
     tbMain->addAction(ui->actionQuitter);
 
-//    tbMain->addAction(ui->actionDemo);
-//    connect(ui->actionDemo, &QAction::triggered, this, &MainWindow::lanceDemo1);
-
     tbMain->addSeparator();
     tbMain->addAction(ui->actionBasculeCouleurs);
     connect(ui->actionBasculeCouleurs, &QAction::triggered, this, &MainWindow::basculeCouleurs);
@@ -943,8 +952,9 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
 
 
     // Menu 3d
-    QToolBar *tb3d = new QToolBar(this);
+    //QToolBar *tb3d = new QToolBar(this);
 
+#ifdef Q_OS_WASM
     cbDemo = new QComboBox();
     cbDemo->addItem("Choisir demo", QVariant(""));
     cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
@@ -973,6 +983,7 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     cbDemo->setToolTip("Demos");
     tb3d->addWidget(cbDemo);
     connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
+#endif
 
     // tb3d->addAction(ui->actionXG);
     // connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
@@ -1001,7 +1012,7 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     //tb3d->addAction(ui->actionZoomPlus);
     //connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
 
-    ui->verticalLayout3D->setMenuBar(tb3d);
+    //ui->verticalLayout3D->setMenuBar(tb3d);
 
     // menu 2d
     QToolBar *tb2d = new QToolBar(this);

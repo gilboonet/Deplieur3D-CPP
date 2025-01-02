@@ -7,32 +7,6 @@ DepliageVue3d::DepliageVue3d () {
 
 DepliageVue3d::DepliageVue3d (QWidget *parent) : QGraphicsView(parent) {}
 
-void DepliageVue3d::keyPressEvent(QKeyEvent *event) {
-
-    switch(event->key()) {
-        case Qt::Key_A :
-            emit tourneModele(0.1, 0, 0);
-            return;
-        case Qt::Key_E :
-            emit tourneModele(-0.1, 0, 0);
-            return;
-        case Qt::Key_W :
-            emit tourneModele(0, 0.1, 0);
-            return;
-        case Qt::Key_C :
-            emit tourneModele(0, -0.1, 0);
-            return;
-        case Qt::Key_T :
-            emit tourneModele(0, 0, 0.1);
-            return;
-        case Qt::Key_U :
-            emit tourneModele(0, 0, -0.1);
-            return;
-    }
-
-    QGraphicsView::keyPressEvent (event);
-}
-
 void DepliageVue3d::mousePressEvent (QMouseEvent *event) {
     if (event->button() == Qt::MiddleButton) {
         _pan = true;

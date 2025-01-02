@@ -29,7 +29,9 @@ void TriangleItem3d::paint (QPainter *painter, const QStyleOptionGraphicsItem *o
     if (isSelected())
         opt.state = QStyle::State_None;
 
-    //setPen(QPen());
+    QPen p = QPen();
+    p.setWidth(1);
+    setPen(p);
     setBrush(QBrush(this->hoverOn ? this->pieceCouleur.darker() : this->pieceCouleur, Qt::SolidPattern));
 
     QGraphicsPolygonItem::paint(painter, &opt, widget);

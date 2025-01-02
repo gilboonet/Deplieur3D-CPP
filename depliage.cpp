@@ -305,6 +305,13 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
         t.col = 0;
     }
 
+    qreal mx = std::max({dim.x, dim.y, dim.z});
+
+    qreal delta = mx / 5;
+    for (auto && v : faces) {
+        for (auto && vp : v.p)vp =  vp.Vector_Div(delta);
+    }
+
     return true;
 }
 

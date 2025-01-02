@@ -21,12 +21,13 @@ public:
     int prochainNum = 0;
     QList<Nums> nums;
     qreal echelle = 1;
-    float fPas = 0.1f;
+    float fPas = 0.05f;
     float fThetaX;
     float fThetaY;
     float fThetaZ;
     int dYt;
     bool ModeleOK = false;
+    bool ModeleCharge = false;
     int typeLang; // 0, 1 ou 2
     QPoint dimPage;
 
