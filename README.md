@@ -11,6 +11,7 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
 - Tourner ou zoomer sur le modèle 3D (à la souris ou au clavier)
 - édition par clic (gauche) sur une face (ajoute à la face courante ou la retire)
 - (retirer une face n'est possible que si la face n'a qu'un voisin dans cette pièce)
+- (l'ajout d'une face n'est possible que si elle ne chevauche pas une autre face dans la pièce, hors languettes)
 - clic droit sur une face pour sélectionner sa couleur
 - Zoomer sur le gabarit
 - visualiser la face courante du gabarit depuis celle pointée par la souris sur la vue 3D
