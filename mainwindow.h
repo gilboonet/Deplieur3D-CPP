@@ -3,25 +3,56 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
 #include "depliage.h"
 #include "depliagescene.h"
+#include "depliagevue3d.h"
+#include "depliagevue2d.h"
 #include "filedownloader.h"
 
+
+#include <QMainWindow>
+#include <QStatusBar>
 #include <QLineEdit>
 #include <QComboBox>
 #include <QLabel>
-#include <QAbstractButton>
+#include <QTableWidget>
+#include <QSplitter>
 //---------------------------------------------------------
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
+// QT_BEGIN_NAMESPACE
+// namespace Ui {
+// class MainWindow;
+// }
+// QT_END_NAMESPACE
 
 QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece);
 void bascule (QObject *);
 QLabel* creeColorLabel (QColor);
+
+const QStringList gCOL = { "white",
+    "Brown", "Cyan", "DarkBlue", "Crimson", "Chartreuse", "BurlyWood", "Peru",
+    "CadetBlue", "Chocolate", "Fuchsia", "Gold", "Coral", "Aqua", "Magenta",
+    "Aquamarine", "Blue", "BlueViolet", "CornflowerBlue", "Maroon",
+    "MediumAquaMarine", "MediumBlue", "MediumOrchid", "MediumPurple",
+    "MediumSeaGreen", "MediumSlateBlue", "MediumSpringGreen", "Lavender",
+    "MediumTurquoise", "MediumVioletRed", "MidnightBlue", "MintCream",
+    "MistyRose", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkKhaki",
+    "DarkMagenta", "DarkOliveGreen", "DarkOrange", "DarkOrchid", "DarkSalmon",
+    "DarkSeaGreen", "DarkSlateBlue", "DarkSlateGray", "DarkTurquoise",
+    "DarkViolet", "DeepPink", "DeepSkyBlue", "DimGray", "DodgerBlue",
+    "FireBrick", "FloralWhite", "ForestGreen", "GoldenRod", "IndianRed",
+    "Indigo", "GreenYellow", "HoneyDew", "HotPink", "Khaki", "YellowGreen",
+    "LavenderBlush", "LawnGreen", "LemonChiffon", "LightBlue", "LightCoral",
+    "LightCyan", "LightGoldenRodYellow", "LightGray", "LightGrey", "Olive",
+    "LightGreen", "LightPink", "LightSalmon", "LightSeaGreen", "LightSkyBlue",
+    "LightSlateGray", "LightSteelBlue", "LightYellow", "Lime", "LimeGreen",
+    "Linen", "Moccasin", "NavajoWhite", "Navy", "OldLace", "Olive", "Yellow",
+    "OliveDrab", "Orange", "OrangeRed", "Orchid", "PaleGoldenRod", "Wheat",
+    "PaleTurquoise", "PaleVioletRed", "PapayaWhip", "PeachPuff", "WhiteSmoke",
+    "Pink", "Plum", "PowderBlue", "Purple", "RosyBrown", "RoyalBlue",
+    "SaddleBrown", "Salmon", "SandyBrown", "SeaGreen", "SeaShell", "Sienna",
+    "Silver", "SkyBlue", "SlateBlue", "SlateGray", "Snow", "SpringGreen",
+    "SteelBlue", "Tan", "Teal", "Thistle", "Tomato", "Turquoise", "Violet"
+};
 
 class MainWindow : public QMainWindow
 {
@@ -36,10 +67,17 @@ public:
     bool demoMode = false;
 
 private:
-    Ui::MainWindow *ui;
+    //Ui::MainWindow *ui;
     QLineEdit *leEchelle = nullptr;
     QComboBox *cbLanguettes = nullptr;
     QComboBox *cbDemo = nullptr;
+    DepliageVue3d *vue3d = nullptr;
+    DepliageVue2d *vue2d = nullptr;
+    QTableWidget *tableCouleurs = nullptr;
+    QSplitter *splitter = nullptr;
+    QStatusBar *statusbar = nullptr;
+
+    const QString nomApp = "Deplieur 3D v0.1";
 
     QPainterPath construitChemin(QList<QLineF>);
 

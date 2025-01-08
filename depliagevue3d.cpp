@@ -5,7 +5,9 @@
 DepliageVue3d::DepliageVue3d () {
 }
 
-DepliageVue3d::DepliageVue3d (QWidget *parent) : QGraphicsView(parent) {}
+DepliageVue3d::DepliageVue3d (QWidget *parent) : QGraphicsView(parent) {
+    setFrameStyle(QFrame::Panel);
+}
 
 void DepliageVue3d::mousePressEvent (QMouseEvent *event) {
     if (event->button() == Qt::MiddleButton) {
@@ -37,8 +39,8 @@ void DepliageVue3d::mouseMoveEvent (QMouseEvent *event) {
         qreal ady = qFabs(dy);
         if (adx > 4 || ady > 3) {
             if (adx < 20 && ady < 15) {
-                qreal dZ = dx/24;
-                qreal dX = dy/18;
+                qreal dZ = dx/24; //dx/24;
+                qreal dX = dy/24; //dy/18;
                 emit tourneModele (dZ, dX, 0);
                 _panStartX = event->position().x();
                 _panStartY = event->position().y();

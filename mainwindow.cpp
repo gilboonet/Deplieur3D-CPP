@@ -1,7 +1,7 @@
 // Interface de l'application Deplieur
 //---------------------------------------------------------
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
+//#include "./ui_mainwindow.h"
 #include "triangleitem3d.h"
 #include "triangleitem2d.h"
 #include "piecepolygonitem.h"
@@ -10,9 +10,12 @@
 #include "piecenumitem.h"
 #include "svg.hpp"
 
+#include <QApplication>
+#include <QVBoxLayout>
 #include <QToolBar>
 #include <QToolButton>
 #include <QMenu>
+#include <QHeaderView>
 #include <QTableWidgetItem>
 #include <QColorDialog>
 #include <QFileDialog>
@@ -42,7 +45,7 @@ QLabel* creeColorLabel (QColor couleur) {
 // DESTRUCTEUR
 MainWindow::~MainWindow () {
     // LIBERE LA MEMOIRE
-    delete ui;
+    //delete ui;
 }
 
 void MainWindow::resizeEvent (QResizeEvent* event) {
@@ -105,7 +108,7 @@ void MainWindow::changeEchelle()
     }
     dep.dim = dep.dim.Vector_Mul(n);
     vec3d d = dep.dim;
-    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
+    statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 }
 
 void MainWindow::changeMarge (int index) {
@@ -164,7 +167,7 @@ void MainWindow::hoverOff(int faceId)
 }
 
 void MainWindow::changeCouleur (int couleur) {
-    ui->tableCouleurs->selectRow(couleur);
+    tableCouleurs->selectRow(couleur);
     couleurClic(couleur, 0);
 }
 
@@ -172,7 +175,7 @@ void MainWindow::changeNBCouleur (int ligne, int delta) {
     Piece *piece = &(dep.pieces[ligne]);
     piece->nb = piece->nb + delta;
     QTableWidgetItem *twi = new QTableWidgetItem(QString::number(piece->nb));
-    ui->tableCouleurs->setItem(ligne, 2, twi);
+    tableCouleurs->setItem(ligne, 2, twi);
 }
 
 void MainWindow::changeFaceCouleur (int faceId, int couleurId) {
@@ -185,15 +188,17 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
     TriangleItem2d *tCible = facette->triangleItem;
     QColor blanc = QColor(Qt::white);
     bool ok = true;
+    int nb = 0;
     for (auto && e : piece->elements2) {
-        if (e.de == faceId) {
-            ok = false;
-            break;
+        if ((e.de == faceId) || (e.vers == faceId)) {
+            nb++;
         }
     }
+    if (nb > 2)
+        ok = false;
 
     if (!ok) {
-        ui->statusbar->showMessage("Impossible !");
+        statusbar->showMessage("Impossible (2 voisins) !");
         return;
     }
 
@@ -211,6 +216,10 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
         changeNBCouleur(pieceId, -1);
         changeNBCouleur(0, +1);
 
+        for (auto && i : piece->elements2) {
+            if (i.de == faceId)
+                i.de = -1;
+        }
         if (piece->elements.isEmpty()) {
             scene2d->removeItem(piece->bord);
             delete piece->bord;
@@ -234,7 +243,7 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
                 fI->update();
             }
         }
-        ui->statusbar->showMessage("Face enlevée !");
+        statusbar->showMessage("Face enlevée !");
         scene3d->update();
     }
 }
@@ -324,10 +333,11 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         // -> si trouvé : lier face avec voisin + ajouter face
         bool voisinTrouve = false;
         Voisin *vT;
+        // 1°) Essayer à partir de la dernière facette parcourue
         if (scene3d->dernFace > -1) {
-            auto&& i = dep.faces[scene3d->dernFace];
-            if (i.col == ui->tableCouleurs->currentRow()) {
-                for (auto && v : dep.faces[scene3d->dernFace].voisins) {
+            Facette face = dep.faces[scene3d->dernFace];
+            if (face.col == tableCouleurs->currentRow()) {
+                for (Voisin v : face.voisins) {
                     if (v.nF == faceId) {
                         voisinTrouve = true;
                         vT = &v;
@@ -336,8 +346,27 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                 }
             }
         }
+
+        if (!voisinTrouve) {
+            // 2°) Chercher en parcourant la pièce courante
+            for (int nEl : piece->elements) {
+                Facette face = dep.faces[nEl];
+                if (face.col == tableCouleurs->currentRow()) {
+                    for (Voisin v : face.voisins) {
+                        if (v.nF == faceId) {
+                            voisinTrouve = true;
+                            vT = &v;
+                            break;
+                        }
+                    }
+                }
+                if (voisinTrouve)
+                    break;
+            }
+        }
+
         if (voisinTrouve) {
-            ui->statusbar->showMessage("Ok");
+            statusbar->showMessage("Ok");
             tSource = dep.faces[vT->pnF].triangleItem;
 
             QPolygonF pCible = tCible->polygon();
@@ -369,10 +398,10 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             Attache att(scene3d->dernFace, faceId);
             piece->elements2.append(att);
             ok = true;
-            ui->statusbar->showMessage("Face ajoutée !");
+            statusbar->showMessage("Face ajoutée !");
         }
         else {
-            ui->statusbar->showMessage("voisin non trouvé");
+            statusbar->showMessage("voisin non trouvé");
         }
     }    
     if (ok) {
@@ -430,7 +459,7 @@ void MainWindow::face3dMAJ (Piece *piece, int faceId) {
 void MainWindow::peutColorierFace (int faceId) {
     // CLIC SUR UNE FACE 3D : COLORIER OU NON ?
     Facette *facette = &(dep.faces[faceId]);
-    int coul = ui->tableCouleurs->currentRow();
+    int coul = tableCouleurs->currentRow();
 
     qDebug() << scene3d->dernFace << scene3d->faceCourante;
 
@@ -682,7 +711,12 @@ void MainWindow::tourne2D (qreal a) {
 }
 
 void MainWindow::ajuste3D () {
-    ui->vue3d->fitInView(ui->vue3d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
+    if (!vue3d)
+        return;
+
+    if (vue3d->scene())
+        //ui->vue3d->fitInView(ui->vue3d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
+        vue3d->fitInView(vue3d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
 }
 
 void MainWindow::ajuste2D () {
@@ -693,12 +727,12 @@ void MainWindow::ajuste2D () {
         scene2d->addItem(scene2d->pageTemoin);
     } else
         scene2d->pageTemoin->setRect(0, 0, 220* scene2d->nbPages, 297);
-    ui->vue2d->fitInView(ui->vue2d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
+    vue2d->fitInView(vue2d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
 }
 
 void MainWindow::couleurClic (int ligne, int col) {
-    // clic sur un item du tableau des couleurs
-    if (col > 0)
+    // clic sur une ligne du tableau des couleurs
+    if (!dep.ModeleOK)
         return;
 
     scene3d->itemColorId = ligne;
@@ -707,21 +741,21 @@ void MainWindow::couleurClic (int ligne, int col) {
 
 void MainWindow::bascule2d () {
     // AFFICHE/CACHE LA VUE 2D
-    bascule(ui->splitter->children()[0]);
+    bascule(splitter->children()[0]);
     ajuste3D();
     ajuste2D();
 }
 
 void MainWindow::bascule3d () {
     // AFFICHE/CACHE LA VUE 3D
-    bascule(ui->splitter->children()[1]);
+    bascule(splitter->children()[1]);
     ajuste3D();
     ajuste2D();
 }
 
 void MainWindow::basculeCouleurs () {
     // AFFICHE/CACHE LES COULEURS
-    bascule(ui->splitter->children()[2]);
+    bascule(splitter->children()[2]);
     ajuste3D();
     ajuste2D();
 }
@@ -745,20 +779,21 @@ void MainWindow::couleurChoisie (QColor color) {
         Piece p1;
         p1.couleur = color;
         p1.nb = 0;
-        int nb = ui->tableCouleurs->rowCount();
-        ui->tableCouleurs->setRowCount(nb+1);
+        int nb = tableCouleurs->rowCount();
+        tableCouleurs->setRowCount(nb+1);
         p1.id = nb;
         dep.pieces.append(p1);
-        ui->tableCouleurs->setCellWidget(nb, 0, creeColorLabel(color));
-        ui->tableCouleurs->setCellWidget(nb, 1, creeColorLabel(color));
-        ui->tableCouleurs->setItem(nb, 2, new QTableWidgetItem("0"));
+        tableCouleurs->setCellWidget(nb, 0, creeColorLabel(color));
+        tableCouleurs->setCellWidget(nb, 1, creeColorLabel(color));
+        tableCouleurs->setRowHeight(nb, 14);
+        tableCouleurs->setItem(nb, 2, new QTableWidgetItem("0"));
         QString s = QString("Piece #%1").arg(nb);
-        ui->tableCouleurs->setItem(nb, 3, new QTableWidgetItem(s));
-        ui->statusbar->showMessage("Couleur ajoutée");
-        ui->tableCouleurs->selectRow(nb);
+        tableCouleurs->setItem(nb, 3, new QTableWidgetItem(s));
+        statusbar->showMessage("Couleur ajoutée");
+        tableCouleurs->selectRow(nb);
         couleurClic(nb, 0);
     } else {
-        ui->statusbar->showMessage("Couleur déjà utilisée !");
+        statusbar->showMessage("Couleur déjà utilisée !");
     }
 }
 
@@ -767,10 +802,11 @@ void MainWindow::couleurNouveau () {
     if(!dep.ModeleOK)
         return;
 
-    QColorDialog *dialog = new QColorDialog();
-    dialog->setOption(QColorDialog::NoEyeDropperButton);
-    connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
-    dialog->open();
+    couleurChoisie(QColor(gCOL[tableCouleurs->rowCount()]));
+    // QColorDialog *dialog = new QColorDialog();
+    // dialog->setOption(QColorDialog::NoEyeDropperButton);
+    // connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
+    // dialog->open();
 }
 
 void MainWindow::demo() {
@@ -792,7 +828,7 @@ void MainWindow::demo() {
             dep.fPas = 0.1;
             scene2d->nbPages = 1;
             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-            setWindowTitle("Deplieur [Modele Demo]");
+            setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
             demoMode = true;
             dep.chargeFichierOBJ(m_demoFichier->downloadedData());
             chargeFichier();
@@ -814,7 +850,7 @@ void MainWindow::doDemo() {
     dep.fPas = 0.1;
     scene2d->nbPages = 1;
     leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-    setWindowTitle("Deplieur [Modele Demo]");
+    setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
     demoMode = true;
     dep.chargeFichierOBJ(m_demoFichier->downloadedData());
     chargeFichier();
@@ -836,7 +872,7 @@ void MainWindow::nouveau () {
             delete(scene2d->pageTemoin);
             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
             QFileInfo f(fileName);
-            setWindowTitle("Deplieur [" + f.fileName() + "]");
+            setWindowTitle(QString("%1 [%2]").arg(nomApp).arg(f.fileName()));
             dep.chargeFichierOBJ(fileContent);
             chargeFichier();
             dep.ModeleCharge = true;
@@ -853,13 +889,13 @@ void MainWindow::chargeFichier() {
     dep.pieces.append(p0);
 
     changeNBCouleur(0);
-    ui->tableCouleurs->setRowCount(1);
+    tableCouleurs->setRowCount(1);
     dep.dessineModele(scene3d);
     connect(scene3d, &DepliageScene::changeCouleur, this, &MainWindow::changeCouleur);
     connect(scene3d, &DepliageScene::changeNBCouleur, this, &MainWindow::changeNBCouleur);
     connect(scene3d, &DepliageScene::changeFaceCouleur, this, &MainWindow::changeFaceCouleur);
-    connect(ui->vue3d, &DepliageVue3d::tourneModele, this, &MainWindow::tourneModele);
-    connect(ui->vue2d, &DepliageVue2d::tourne2D, this, &MainWindow::tourne2D);
+    connect(vue3d, &DepliageVue3d::tourneModele, this, &MainWindow::tourneModele);
+    connect(vue2d, &DepliageVue2d::tourne2D, this, &MainWindow::tourne2D);
     connect(scene3d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
     connect(scene3d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
     connect(scene2d, &DepliageScene::basculeLanguette, this, &MainWindow::basculeLanguette);
@@ -877,7 +913,7 @@ void MainWindow::chargeFichier() {
 
     dep.dim = dep.dim.Vector_Mul(50);
     vec3d d = dep.dim;
-    ui->statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
+    statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 
     ajuste3D();
     ajuste2D();
@@ -895,66 +931,117 @@ void MainWindow::lanceDemo(int index) {
 }
 
 // CONSTRUCTEUR
-MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
+MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     // DEFINIT L'INTERFACE
-    ui->setupUi(this);
+
+    statusbar = statusBar();
+    statusbar->showMessage(nomApp);
+    setWindowTitle(nomApp);
     setWindowFlag(Qt::Window);
 
     dep.ModeleOK = false;
 
+    setFont(QFont("Smallfonts", 8));
+
+    QWidget *wMenu = new QWidget(this);
+    QWidget *wCouleurs = new QWidget(this);
+    QWidget *w3D = new QWidget(this);
+    QWidget *w2D = new QWidget(this);
+    QVBoxLayout *VBLMenu = new QVBoxLayout(wMenu);
+    QVBoxLayout *VBLCouleurs = new QVBoxLayout(wCouleurs);
+    QVBoxLayout *VBL3D = new QVBoxLayout(w3D);
+    QVBoxLayout *VBL2D = new QVBoxLayout(w2D);
+
     // Menu principal
     QToolBar *tbMain = new QToolBar(this);
-    tbMain->addAction(ui->actionNouveau);
-    tbMain->addAction(ui->actionOuvrir);
-    tbMain->addAction(ui->actionSauver);
-    tbMain->addAction(ui->actionExporter);
-    tbMain->addAction(ui->actionQuitter);
+    tbMain->setVisible(true);
+    QAction * action;
+
+    action = new QAction(QIcon(":/resources/note_add.png"), "Nouveau projet", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::nouveau);
+
+    action = new QAction(QIcon(":/resources/file_open.png"), "Ouvrir projet", this);
+    action->setEnabled(false);
+    tbMain->addAction(action);
+
+    action = new QAction(QIcon(":/resources/file_save.png"), "Sauver projet", this);
+    action->setEnabled(false);
+    tbMain->addAction(action);
+
+    action = new QAction(QIcon(":/resources/file_export.png"), "Exporter en SVG", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::exporte);
+
+    action = new QAction(QIcon(":/resources/close.png"), "Quitter", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &QApplication::quit);
 
     tbMain->addSeparator();
-    tbMain->addAction(ui->actionBasculeCouleurs);
-    connect(ui->actionBasculeCouleurs, &QAction::triggered, this, &MainWindow::basculeCouleurs);
-    tbMain->addAction(ui->actionBascule3D);
-    connect(ui->actionBascule3D, &QAction::triggered, this, &MainWindow::bascule3d);
-    tbMain->addAction(ui->actionBascule2D);
-    connect(ui->actionBascule2D, &QAction::triggered, this, &MainWindow::bascule2d);
+    action = new QAction("C", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::basculeCouleurs);
+
+    action = new QAction("3d", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::bascule3d);
+
+    action = new QAction("2d", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::bascule2d);
 
     tbMain->setOrientation(Qt::Vertical);
     tbMain->setMaximumWidth(25);
-    ui->verticalLayoutMenu->addWidget(tbMain);
-
-    connect(ui->actionNouveau, &QAction::triggered, this, &MainWindow::nouveau);
-    connect(ui->actionQuitter, &QAction::triggered, this, &QApplication::quit);
-    connect(ui->actionExporter, &QAction::triggered, this, &MainWindow::exporte);
+    VBLMenu->addWidget(tbMain);
 
     // Menu Pieces/couleurs
     QToolBar *tbCol = new QToolBar(this);
-    tbCol->addAction(ui->actionCouleurPlus);
-    connect(ui->actionCouleurPlus, &QAction::triggered, this, &MainWindow::couleurNouveau);
 
-    tbCol->addAction(ui->actionCouleurMoins);
+    action = new QAction("+", this);
+    action->setToolTip("Ajouter Couleur/Pièce");
+    tbCol->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::couleurNouveau);
+
+    //tbCol->addAction(ui->actionCouleurMoins);
     //connect(ui->actionCouleurMoins, &QAction::triggered, this, &MainWindow::couleurSupprime);
 
-    ui->verticalLayoutCouleurs->setMenuBar(tbCol);
+    tbCol->setVisible(true);
+    VBLCouleurs->setMenuBar(tbCol);
 
-    ui->tableCouleurs->setRowCount(1);
-    ui->tableCouleurs->setColumnCount(4);
-    ui->tableCouleurs->setColumnWidth(0, 5);
-    ui->tableCouleurs->setColumnWidth(1, 5);
-    ui->tableCouleurs->setColumnWidth(2, 35);
-    ui->tableCouleurs->setColumnWidth(3, 108);
+    tableCouleurs = new QTableWidget(1, 4, this);
+    tableCouleurs->setColumnWidth(0, 5);
+    tableCouleurs->setColumnWidth(1, 5);
+    tableCouleurs->setColumnWidth(2, 35);
+    tableCouleurs->setColumnWidth(3, 108);
     // Première ligne : couleur white par défaut
-    ui->tableCouleurs->setCellWidget(0, 0, creeColorLabel(Qt::white));
-    ui->tableCouleurs->setCellWidget(0, 1, creeColorLabel(Qt::white));
-    ui->tableCouleurs->setItem(0, 2, new QTableWidgetItem("0"));
-    ui->tableCouleurs->setItem(0, 3, new QTableWidgetItem("Defaut"));
-    connect(ui->tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
-    ui->tableCouleurs->clearSelection();
-
-
-    // Menu 3d
-    //QToolBar *tb3d = new QToolBar(this);
+    tableCouleurs->setCellWidget(0, 0, creeColorLabel(Qt::white));
+    tableCouleurs->setCellWidget(0, 1, creeColorLabel(Qt::white));
+    tableCouleurs->setItem(0, 2, new QTableWidgetItem("0"));
+    tableCouleurs->setItem(0, 3, new QTableWidgetItem("Defaut"));
+    tableCouleurs->setRowHeight(0, 14);
+    connect(tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
+    tableCouleurs->clearSelection();
+    tableCouleurs->horizontalHeader()->hide();
+    tableCouleurs->verticalHeader()->hide();
+    tableCouleurs->setMaximumWidth(190);
+    tableCouleurs->setFrameStyle(QFrame::Panel);
+    tableCouleurs->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableCouleurs->setVisible(true);
+    VBLCouleurs->addWidget(tableCouleurs);
 
 #ifdef Q_OS_WASM
+    // Menu 3d
+    QToolBar *tb3d = new QToolBar(this);
+
     cbDemo = new QComboBox();
     cbDemo->addItem("Choisir demo", QVariant(""));
     cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
@@ -983,54 +1070,13 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     cbDemo->setToolTip("Demos");
     tb3d->addWidget(cbDemo);
     connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
+    tb3d->setVisible(true);
+    VBL3D->setMenuBar(tb3d);
 #endif
-
-    // tb3d->addAction(ui->actionXG);
-    // connect(ui->actionXG, &QAction::triggered, this, &MainWindow::tourner3DXG);
-    // tb3d->addWidget(new QLabel("X"));
-    // tb3d->addAction(ui->actionXD);
-    // connect(ui->actionXD, &QAction::triggered, this, &MainWindow::tourner3DXD);
-
-    // tb3d->addSeparator();
-    // tb3d->addAction(ui->actionYG);
-    // connect(ui->actionYG, &QAction::triggered, this, &MainWindow::tourner3DYG);
-    // tb3d->addWidget(new QLabel("Y"));
-    // tb3d->addAction(ui->actionYD);
-    // connect(ui->actionYD, &QAction::triggered, this, &MainWindow::tourner3DYD);
-
-    // tb3d->addSeparator();
-    // tb3d->addAction(ui->actionZG);
-    // connect(ui->actionZG, &QAction::triggered, this, &MainWindow::tourner3DZG);
-    // tb3d->addWidget(new QLabel("Z"));
-    // tb3d->addAction(ui->actionZD);
-    // connect(ui->actionZD, &QAction::triggered, this, &MainWindow::tourner3DZD);
-
-    //tb3d->addSeparator();
-    //tb3d->addAction(ui->actionZoomMoins);
-    //connect(ui->actionZoomMoins, &QAction::triggered, this, &MainWindow::zoom3DMoins);
-    //tb3d->addWidget(new QLabel("Zoom."));
-    //tb3d->addAction(ui->actionZoomPlus);
-    //connect(ui->actionZoomPlus, &QAction::triggered, this, &MainWindow::zoom3DPlus);
-
-    //ui->verticalLayout3D->setMenuBar(tb3d);
 
     // menu 2d
     QToolBar *tb2d = new QToolBar(this);
 
-/*    tb2d->addAction(ui->action2DZoomMoins);
-    //connect(ui->action2DZoomMoins, &QAction::triggered, this, &MainWindow::zoom2DMoins);
-    tb2d->addWidget(new QLabel("Zoom"));
-    tb2d->addAction(ui->action2DZoomPlus);
-    //connect(ui->action2DZoomPlus, &QAction::triggered, this, &MainWindow::zoom2DPlus);
-
-    tb2d->addSeparator();
-    tb2d->addAction(ui->action2DRotMoins);
-    //connect(ui->action2DRotMoins, &QAction::triggered, this, &MainWindow::Rot2DMoins);
-    tb2d->addWidget(new QLabel("Rot."));
-    tb2d->addAction(ui->action2DRotPlus);
-    //connect(ui->action2DRotPlus, &QAction::triggered, this, &MainWindow::Rot2DPlus);
-*/
-    tb2d->addSeparator();
     leEchelle =  new QLineEdit();
     leEchelle->setMaximumWidth(50);
     QDoubleValidator *val = new QDoubleValidator();
@@ -1040,9 +1086,10 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     leEchelle->setValidator(val);
     tb2d->addWidget(new QLabel("Echelle:"));
     tb2d->addWidget(leEchelle);
-    connect(leEchelle, &QLineEdit:: returnPressed, this, &MainWindow::changeEchelle);
+    connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
 
     tb2d->addSeparator();
+
     tb2d->addWidget(new QLabel("Lang.:"));
     cbLanguettes = new QComboBox();
     cbLanguettes->addItems({"Sans", "1/paire", "2/paire"});
@@ -1051,10 +1098,16 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     connect(cbLanguettes, &QComboBox::currentIndexChanged, this, &MainWindow::changeTypeLang);
 
     tb2d->addSeparator();
-    tb2d->addAction(ui->actionPgMoins);
-    tb2d->addAction(ui->actionPgPlus);
-    connect(ui->actionPgPlus, &QAction::triggered, this, &MainWindow::ajoutePage);
-    connect(ui->actionPgMoins, &QAction::triggered, this, &MainWindow::supprimePage);
+
+    action = new QAction("+", this);
+    action->setToolTip("Ajouter Page");
+    tb2d->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::ajoutePage);
+
+    action = new QAction("-", this);
+    action->setToolTip("Supprimer Page");
+    tb2d->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::supprimePage);
 
     tb2d->addSeparator();
     tb2d->addWidget(new QLabel("Marges:"));
@@ -1064,11 +1117,44 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent), ui(new Ui::MainW
     tb2d->addWidget(cbMarges);
     connect(cbMarges, &QComboBox::currentIndexChanged, this, &MainWindow::changeMarge);
 
-    ui->verticalLayout2D->setMenuBar(tb2d);
+    tb2d->setVisible(true);
+    VBL2D->setMenuBar(tb2d);
 
+    vue3d = new DepliageVue3d(this);
     scene3d = new DepliageScene(this, false);
-    ui->vue3d->setScene(scene3d);
+    vue3d->setScene(scene3d);
+    vue3d->setVisible(true);
+    VBL3D->addWidget(vue3d);
 
+    vue2d = new DepliageVue2d(this);
     scene2d = new DepliageScene(this);
-    ui->vue2d->setScene(scene2d);
+    vue2d->setScene(scene2d);
+    vue2d->setVisible(true);
+    VBL2D->addWidget(vue2d);
+
+    splitter = new QSplitter(Qt::Horizontal, this);
+
+    VBLMenu->setContentsMargins(1,1,1,1);
+    VBLMenu->setSizeConstraint(QLayout::SetMaximumSize);
+    splitter->addWidget(wMenu);
+
+    VBLCouleurs->setContentsMargins(1,1,1,1);
+    VBLCouleurs->setSizeConstraint(QLayout::SetMaximumSize);
+    tableCouleurs->setMaximumWidth(190);
+    splitter->addWidget(wCouleurs);
+
+    w3D->setContentsMargins(1,1,1,1);
+    vue3d->setContentsMargins(1,1,1,1);
+    splitter->addWidget(w3D);
+
+    w2D->setContentsMargins(1,1,1,1);
+    vue2d->setContentsMargins(1,1,1,1);
+    splitter->addWidget(w2D);
+
+    splitter->setSizes({50,190,500,500});
+    splitter->setMinimumSize(1024,600);
+    splitter->setHandleWidth(3);
+    splitter->setStyleSheet("QSplitter::handle{background: #00aaff;}");
+
+    setCentralWidget(splitter);
 }
