@@ -389,13 +389,15 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
             ok = true;
             tmpP = trR.map(pCible);
-            for (auto && ni : piece->elements) {
-                QPolygonF t = dep.faces[ni].triangleItem->polygon();
-                QPolygonF ptest = tmpP.intersected(t);
-                if (ptest.size() > 0) {
-                    qDebug() << "chevauchement" << ptest.size();
-                    ok = false;
-                    break;
+            for (int ni : piece->elements) {
+                if (ni >= 0) {
+                    QPolygonF t = dep.faces[ni].triangleItem->polygon();
+                    QPolygonF ptest = tmpP.intersected(t);
+                    if (ptest.size() > 2) {
+                        qDebug() << "chevauchement" << ptest.size();
+                        ok = false;
+                        break;
+                    }
                 }
             }
 
