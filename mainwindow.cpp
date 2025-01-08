@@ -306,6 +306,7 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
     TriangleItem2d *tCible = facette->triangleItem;
     TriangleItem2d *tSource;
     bool ok = false;
+    QPolygonF tmpP;
 
     if (piece->nb == 0) { // piece vide -> créer groupe + ajouter 1ère face
         if (!piece->bord) {
@@ -386,19 +387,37 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             trR.rotate(-angle);
             trR.translate(-ptOrig.x(), -ptOrig.y());
 
-            tCible->setPolygon(trR.map(pCible));
-            tCible->setParentItem(piece->bord);
-
-            changeNBCouleur(facette->col, -1);
-            changeNBCouleur(pieceId, +1);
-            facette->col = pieceId;
-            tCible->col = pieceId;
-            tCible->pieceCouleur = piece->couleur;
-            piece->elements.append(faceId);
-            Attache att(scene3d->dernFace, faceId);
-            piece->elements2.append(att);
             ok = true;
-            statusbar->showMessage("Face ajoutée !");
+            tmpP = trR.map(pCible);
+            for (auto && ni : piece->elements) {
+                QPolygonF t = dep.faces[ni].triangleItem->polygon();
+                QPolygonF ptest = tmpP.intersected(t);
+                if (ptest.size() > 0) {
+                    qDebug() << "chevauchement" << ptest.size();
+                    ok = false;
+                    break;
+                }
+            }
+
+            if (!ok) {
+                statusbar->showMessage("Impossible (chevauchement) !");
+            }
+            else {
+                //tCible->setPolygon(trR.map(pCible));
+                tCible->setPolygon(tmpP);
+                tCible->setParentItem(piece->bord);
+
+                changeNBCouleur(facette->col, -1);
+                changeNBCouleur(pieceId, +1);
+                facette->col = pieceId;
+                tCible->col = pieceId;
+                tCible->pieceCouleur = piece->couleur;
+                piece->elements.append(faceId);
+                Attache att(scene3d->dernFace, faceId);
+                piece->elements2.append(att);
+                ok = true;
+                statusbar->showMessage("Face ajoutée !");
+            }
         }
         else {
             statusbar->showMessage("voisin non trouvé");
