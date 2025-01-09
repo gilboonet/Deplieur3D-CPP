@@ -320,7 +320,7 @@ void Depliage::trouveVoisinage () {
     int vi;
     bool ok;
     int nbFaces = faces.size();
-    std::array<Voisin, 3> tmpV;
+    //std::array<Voisin, 3> tmpV;
 
     for (auto &&ti : faces) {
         i = ti.id;
@@ -343,11 +343,13 @@ void Depliage::trouveVoisinage () {
                                 p = 2;
 
                             qreal c = faces[vi].isCoplanar(ti.p[p]);
-                            tmpV[j] = Voisin(j, i, vi, next(k), sgn(c));
-                            if (j == 2) {
-                                ti.voisins = tmpV;
-                                //qDebug() << i << ti.pi[0] << ti.pi[1] << ti.pi[2] << ti.voisins[0].nF << ti.voisins[1].nF << ti.voisins[2].nF;
-                            }
+                            //tmpV[j] = Voisin(j, i, vi, next(k), sgn(c));
+                            ti.voisins[j] = Voisin(j, i, vi, next(k), sgn(c));
+                            qDebug() << j << i << vi << next(k) <<  sgn(c);
+                            //if (j == 2) {
+                            //    ti.voisins = tmpV;
+                            //    qDebug() << i << ti.pi[0] << ti.pi[1] << ti.pi[2] << ti.voisins[0].nF << ti.voisins[1].nF << ti.voisins[2].nF;
+                            //}
                             ok = true;
                         }
                     if (!ok)
@@ -385,7 +387,7 @@ int next (int n) { return n == 2 ? 0 : n+1; }
 int prev (int n) { return n == 0 ? 2 : n-1; }
 
 int sgn (qreal x) {
-    if (x < 0) return 1;
-    if (x > 0) return -1;
+    if (x < 0) return -1;
+    if (x > 0) return 1;
     return 0;
 }

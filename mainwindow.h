@@ -76,7 +76,7 @@ private:
     QSplitter *splitter = nullptr;
     QStatusBar *statusbar = nullptr;
 
-    const QString nomApp = "Deplieur 3D v0.1";
+    const QString nomApp = "Deplieur 3D v0.1 (09-01-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
 

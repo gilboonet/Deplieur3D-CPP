@@ -307,12 +307,12 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
     TriangleItem2d *tSource;
     bool ok = false;
     QPolygonF tmpP;
+    int coulCourante = tableCouleurs->currentRow();
+    Voisin vT;
 
     if (piece->nb == 0) { // piece vide -> créer groupe + ajouter 1ère face
         if (!piece->bord) {
             piece->bord = new PiecePolygonItem(scene2d, piece->couleur);
-            //if (dep.echelle != 1)
-            //    piece->bord->setScale(dep.echelle);
         }
 
         tCible->setParentItem(piece->bord);
@@ -333,15 +333,14 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         // piece non vide -> chercher voisin
         // -> si trouvé : lier face avec voisin + ajouter face
         bool voisinTrouve = false;
-        Voisin *vT;
         // 1°) Essayer à partir de la dernière facette parcourue
-        if (scene3d->dernFace > -1) {
+        if ((scene3d->dernFace > -1) && (scene3d->dernFace < dep.faces.size())) {
             Facette face = dep.faces[scene3d->dernFace];
-            if (face.col == tableCouleurs->currentRow()) {
+            if (face.col == coulCourante) {
                 for (Voisin v : face.voisins) {
                     if (v.nF == faceId) {
                         voisinTrouve = true;
-                        vT = &v;
+                        vT = v;
                         break;
                     }
                 }
@@ -352,11 +351,11 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             // 2°) Chercher en parcourant la pièce courante
             for (int nEl : piece->elements) {
                 Facette face = dep.faces[nEl];
-                if (face.col == tableCouleurs->currentRow()) {
+                if (face.col == coulCourante) {
                     for (Voisin v : face.voisins) {
                         if (v.nF == faceId) {
                             voisinTrouve = true;
-                            vT = &v;
+                            vT = v;
                             break;
                         }
                     }
@@ -368,12 +367,12 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
         if (voisinTrouve) {
             statusbar->showMessage("Ok");
-            tSource = dep.faces[vT->pnF].triangleItem;
+            tSource = dep.faces[vT.pnF].triangleItem;
 
             QPolygonF pCible = tCible->polygon();
             QPolygonF pSource = tSource->polygon();
-            QPointF ptOrig = pSource[vT->id];
-            QPointF delta = ptOrig - pCible[vT->idx];
+            QPointF ptOrig = pSource[vT.id];
+            QPointF delta = ptOrig - pCible[vT.idx];
             QTransform trT;
             trT.translate(delta.x(), delta.y());
             pCible = trT.map(pCible);
@@ -381,8 +380,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             QTransform trR;
             qreal angle = calc_angle(
                 ptOrig,
-                pSource[next(vT->id)],
-                pCible[prev(vT->idx)]);
+                pSource[next(vT.id)],
+                pCible[prev(vT.idx)]);
             trR.translate(ptOrig.x(), ptOrig.y());
             trR.rotate(-angle);
             trR.translate(-ptOrig.x(), -ptOrig.y());
@@ -390,7 +389,7 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             ok = true;
             tmpP = trR.map(pCible);
             for (int ni : piece->elements) {
-                if (ni >= 0) {
+                if ((ni >= 0) && (ni< dep.faces.size())) {
                     QPolygonF t = dep.faces[ni].triangleItem->polygon();
                     QPolygonF ptest = tmpP.intersected(t);
                     if (ptest.size() > 2) {
@@ -405,7 +404,6 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                 statusbar->showMessage("Impossible (chevauchement) !");
             }
             else {
-                //tCible->setPolygon(trR.map(pCible));
                 tCible->setPolygon(tmpP);
                 tCible->setParentItem(piece->bord);
 
@@ -482,8 +480,6 @@ void MainWindow::peutColorierFace (int faceId) {
     Facette *facette = &(dep.faces[faceId]);
     int coul = tableCouleurs->currentRow();
 
-    qDebug() << scene3d->dernFace << scene3d->faceCourante;
-
     // SI COUL = 0
     // -> SI COUL FACE = 0 -> ne rien faire
     // ----> SINON ENLEVER FACE DE SA PIECE ACTUELLE
@@ -496,7 +492,7 @@ void MainWindow::peutColorierFace (int faceId) {
         }
     } else {
         if (facette->col == 0) {
-            //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
+            qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
             pieceAjouteFace(coul, facette->id);
         } else {
             //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
