@@ -29,20 +29,19 @@ void bascule (QObject *);
 QLabel* creeColorLabel (QColor);
 
 const QStringList gCOL = { "white",
-    "Brown", "Cyan", "DarkBlue", "Crimson", "Chartreuse", "BurlyWood", "Peru",
-    "CadetBlue", "Chocolate", "Fuchsia", "Gold", "Coral", "Aqua", "Magenta",
-    "Aquamarine", "Blue", "BlueViolet", "CornflowerBlue", "Maroon",
-    "MediumAquaMarine", "MediumBlue", "MediumOrchid", "MediumPurple",
-    "MediumSeaGreen", "MediumSlateBlue", "MediumSpringGreen", "Lavender",
-    "MediumTurquoise", "MediumVioletRed", "MidnightBlue", "MintCream",
-    "MistyRose", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkKhaki",
-    "DarkMagenta", "DarkOliveGreen", "DarkOrange", "DarkOrchid", "DarkSalmon",
-    "DarkSeaGreen", "DarkSlateBlue", "DarkSlateGray", "DarkTurquoise",
-    "DarkViolet", "DeepPink", "DeepSkyBlue", "DimGray", "DodgerBlue",
-    "FireBrick", "FloralWhite", "ForestGreen", "GoldenRod", "IndianRed",
+    "Brown", "Cyan", "Crimson", "Chartreuse", "BurlyWood", "Peru", "CadetBlue",
+    "Chocolate", "Fuchsia", "Gold", "Coral", "Aquamarine", "Tomato",
+    "BlueViolet", "CornflowerBlue", "Maroon", "MediumAquaMarine", "MediumBlue",
+    "MediumOrchid", "MediumPurple", "MediumSeaGreen", "MediumSlateBlue",
+    "MediumSpringGreen", "Lavender", "MediumTurquoise", "MediumVioletRed",
+    "MidnightBlue", "MintCream", "MistyRose", "DarkCyan", "DarkGoldenRod",
+    "DarkGray", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
+    "DarkOrchid", "DarkSalmon", "DarkSeaGreen", "DarkTurquoise", "DarkViolet",
+    "DeepPink", "DeepSkyBlue", "DimGray", "DodgerBlue", "Turquoise", "Violet",
+    "FireBrick", "ForestGreen", "GoldenRod", "IndianRed",
     "Indigo", "GreenYellow", "HoneyDew", "HotPink", "Khaki", "YellowGreen",
     "LavenderBlush", "LawnGreen", "LemonChiffon", "LightBlue", "LightCoral",
-    "LightCyan", "LightGoldenRodYellow", "LightGray", "LightGrey", "Olive",
+    "LightCyan", "LightGoldenRodYellow", "LightGray", "Olive",
     "LightGreen", "LightPink", "LightSalmon", "LightSeaGreen", "LightSkyBlue",
     "LightSlateGray", "LightSteelBlue", "LightYellow", "Lime", "LimeGreen",
     "Linen", "Moccasin", "NavajoWhite", "Navy", "OldLace", "Olive", "Yellow",
@@ -51,7 +50,7 @@ const QStringList gCOL = { "white",
     "Pink", "Plum", "PowderBlue", "Purple", "RosyBrown", "RoyalBlue",
     "SaddleBrown", "Salmon", "SandyBrown", "SeaGreen", "SeaShell", "Sienna",
     "Silver", "SkyBlue", "SlateBlue", "SlateGray", "Snow", "SpringGreen",
-    "SteelBlue", "Tan", "Teal", "Thistle", "Tomato", "Turquoise", "Violet"
+    "SteelBlue", "Tan", "Teal", "Thistle"
 };
 
 class MainWindow : public QMainWindow
