@@ -2,7 +2,9 @@
 
 DepliageVue2d::DepliageVue2d () {}
 
-DepliageVue2d::DepliageVue2d (QWidget *parent) : QGraphicsView(parent) {}
+DepliageVue2d::DepliageVue2d (QWidget *parent) : QGraphicsView(parent) {
+    setFrameStyle(QFrame::Panel);
+}
 
 void DepliageVue2d::mousePressEvent (QMouseEvent *event) {
     if (event->button() == Qt::MiddleButton) {

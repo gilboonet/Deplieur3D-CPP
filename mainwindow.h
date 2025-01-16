@@ -90,6 +90,7 @@ private slots:
     void chargeFichier ();
     void lanceDemo (int);
     void exporte ();
+    void sauveProjet ();
 
     void basculeCouleurs ();
     void bascule3d ();

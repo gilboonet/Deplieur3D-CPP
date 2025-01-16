@@ -504,6 +504,9 @@ void MainWindow::peutColorierFace (int faceId) {
 }
 
 void MainWindow::exporte () {
+    if (!dep.ModeleOK)
+        return;
+
     SVG::SVG root;
     QByteArray svgRoot;
 
@@ -645,6 +648,132 @@ void MainWindow::exporte () {
     }
     svgRoot = QByteArray::fromStdString(std::string(root));
     QFileDialog::saveFileContent(svgRoot, "myExport.svg");
+}
+
+void MainWindow::sauveProjet()
+{
+    if (!dep.ModeleOK)
+        return;
+
+    QByteArray qbSauve;
+    QStringList sauve;
+    QString ligne;
+
+    // 0°) "header"
+    sauve.append("# cree par Deplieur 3D");
+    sauve.append("o OBJ");
+    // 1°) sauve donnees du modele 3D
+
+    // vecteurs (triangles 3d)
+
+    // rech. max
+    int vmax = 0;
+    for (auto && f : dep.faces) {
+        vmax = std::max({vmax, f.pi[0], f.pi[1], f.pi[2]});
+    }
+
+    vec3d vnv;
+    for (int nv = 0; nv <= vmax; nv++) {
+        bool ok = false;
+        for (auto && f : dep.faces) {
+            if (f.pi[0] == nv) {
+                vnv = f.p[0];
+                ok = true;
+                break;
+            }
+            if (f.pi[1] == nv) {
+                vnv = f.p[1];
+                ok = true;
+                break;
+            }
+            if (f.pi[2] == nv) {
+                vnv = f.p[2];
+                ok = true;
+                break;
+            }
+        }
+
+        if (ok) {
+            // PTS 3D (VECTEURS)
+            ligne = QString("v %1 %2 %3")
+                .arg(vnv.x, 0, 'f', 4)
+                .arg(vnv.y, 0, 'f', 4)
+                .arg(vnv.z, 0, 'f', 4);
+            sauve.append(ligne);
+        }
+    }
+
+    // faces
+    for (auto && i : dep.faces) {
+        // TRIANGLES (FACES)
+        ligne = QString("f %1 %2 %3")
+            .arg(1+i.pi[0])
+            .arg(1+i.pi[1])
+            .arg(1+i.pi[2]);
+        sauve.append(ligne);
+    }
+
+    // 2°) sauve donnees du depliage
+
+    // pieces
+    for (auto && p : dep.pieces) {
+        if (p.id == 0)
+            continue;
+
+        if (p.elements.size() == 0)
+            continue;
+
+        // PIECE
+        ligne = QString("dep piece %1 %2 %3 %4 %5")
+            .arg(p.id)
+            .arg(p.couleur.name())
+            .arg(p.cDesign.name())
+            .arg(p.bord->x(), 0, 'f', 2)
+            .arg(p.bord->y(), 0, 'f', 2);
+        sauve.append(ligne);
+
+        // ELEMENTS (de PIECE)
+        for (auto && pt : p.elements2) {
+            ligne = QString("dep pElem %1 %2")
+            .arg(pt.de)
+            .arg(pt.vers);
+            sauve.append(ligne);
+        }
+
+        // PREMIER ELEMENT (de PIECE)
+        int nEl1 = p.elements2.first().vers;
+        QPolygonF pEl = dep.faces[nEl1].triangleItem->polygon();
+        ligne = QString("dep pEl1 %1 %2 %3 %4 %5 %6")
+                    .arg(pEl[0].x(), 0, 'f', 2)
+                    .arg(pEl[0].y(), 0, 'f', 2)
+                    .arg(pEl[1].x(), 0, 'f', 2)
+                    .arg(pEl[1].y(), 0, 'f', 2)
+                    .arg(pEl[2].x(), 0, 'f', 2)
+                    .arg(pEl[2].y(), 0, 'f', 2);
+        sauve.append(ligne);
+    }
+
+    // numerotation + languettes
+    ligne = QString("dep type lang %1").arg(dep.typeLang);
+    sauve.append(ligne);
+
+    for (auto && n : dep.nums) {
+        ligne = QString("dep nums %1 %2 %3 %4")
+            .arg(n.id1)
+            .arg(n.id2)
+            .arg(n.num)
+            .arg(static_cast<int>(n.tlang));
+    }
+    sauve.append(ligne);
+
+    ligne = QString("dep type page %1 %2")
+        .arg(dep.dimPage.x())
+        .arg(dep.dimPage.y());
+    sauve.append(ligne);
+
+
+    qbSauve = sauve.join('\n').toUtf8();
+    QFileDialog::saveFileContent(qbSauve, "monProjet.obj.dep");
 }
 
 QPainterPath MainWindow::construitChemin(QList<QLineF> lignes) {
@@ -984,8 +1113,9 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     tbMain->addAction(action);
 
     action = new QAction(QIcon(":/resources/file_save.png"), "Sauver projet", this);
-    action->setEnabled(false);
+    action->setEnabled(true);
     tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::sauveProjet);
 
     action = new QAction(QIcon(":/resources/file_export.png"), "Exporter en SVG", this);
     action->setEnabled(true);
