@@ -1,5 +1,5 @@
 #include "piecenumitem.h"
-#include "piecelangitem.h"
+//#include "piecelangitem.h"
 
 PieceNumItem::PieceNumItem() {}
 
@@ -10,7 +10,8 @@ PieceNumItem::PieceNumItem (PieceLigneItem *parentItem, Ligne *ligne, int num) {
     setZValue(4);
     setBrush(QBrush(Qt::blue));
     setText(QString::number(num));
-    QFont tf = QFont("Bitstream Vera Sans", 7);
+    QFont tf = QFont();
+    tf.setPointSize(7); //"Bitstream Vera Sans", 7);
     tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
     setFont(tf);
     setFlag(QGraphicsItem::ItemIsSelectable, true);

@@ -402,8 +402,19 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                     QPolygonF t = dep.faces[ni].triangleItem->polygon();
                     QPolygonF ptest = tmpP.intersected(t);
                     if (ptest.size() > 2) {
-                        qDebug() << "chevauchement" << ptest.size();
-                        ok = false;
+                        if (ptest.size() == 4) {
+                            QString t0, t1, t2, t3;
+                            t0 = QString("%1 %2").arg(ptest[0].x(), 0, 'f', 2).arg(ptest[0].y(), 0, 'f', 2);
+                            t1 = QString("%1 %2").arg(ptest[1].x(), 0, 'f', 2).arg(ptest[1].y(), 0, 'f', 2);
+                            t2 = QString("%1 %2").arg(ptest[2].x(), 0, 'f', 2).arg(ptest[2].y(), 0, 'f', 2);
+                            t3 = QString("%1 %2").arg(ptest[3].x(), 0, 'f', 2).arg(ptest[3].y(), 0, 'f', 2);
+                            ok = (t0 == t1) && (t0 == t2) && (t0 == t3);
+                        } else
+                            ok = false;
+
+                        if (!ok)
+                            qDebug() << "chevauchement" << ptest.size();
+
                         break;
                     }
                 }
