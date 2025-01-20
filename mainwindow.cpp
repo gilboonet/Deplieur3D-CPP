@@ -1,7 +1,6 @@
 // Interface de l'application Deplieur
 //---------------------------------------------------------
 #include "mainwindow.h"
-//#include "./ui_mainwindow.h"
 #include "triangleitem3d.h"
 #include "triangleitem2d.h"
 #include "piecepolygonitem.h"
@@ -20,7 +19,7 @@
 #include <QColorDialog>
 #include <QFileDialog>
 #include <QMessageBox>
-
+#include <QLocale>
 #include <QDebug>
 //---------------------------------------------------------
 void bascule (QObject *o) {
@@ -91,10 +90,16 @@ void MainWindow::clicPli () {
 
 void MainWindow::changeEchelle()
 {
+    QString ch = leEchelle->text();
     bool ok;
-    qreal n = leEchelle->text().toFloat(&ok);
 
-    if (ok) {
+    qreal n = ch.toFloat(&ok);
+    if (!ok) {
+        ch = ch.replace(",", ".");
+        n = ch.toFloat(&ok);
+    }
+
+    if (ok && (n != 0)) {
         dep.echelle = n;
         for (auto && i : scene2d->items()) {
             TriangleItem2d *t = qgraphicsitem_cast<TriangleItem2d*>(i);
@@ -106,7 +111,11 @@ void MainWindow::changeEchelle()
         }
         piecesMAJ();
     }
-    dep.dim = dep.dim.Vector_Mul(n);
+
+    if (n != 0) {
+        dep.dim = dep.dim.Vector_Mul(n);
+    }
+
     vec3d d = dep.dim;
     statusbar->showMessage(QString("Dim : %1 %2 %3").arg(d.x, 0, 'f', 0).arg(d.y, 0, 'f', 0).arg(d.z, 0, 'f', 0));
 }
@@ -1087,7 +1096,9 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
 
     dep.ModeleOK = false;
 
-    setFont(QFont("Smallfonts", 8));
+    QFont font = QFont();
+    font.setPointSize(8);
+    setFont(font);
 
     QWidget *wMenu = new QWidget(this);
     QWidget *wCouleurs = new QWidget(this);
@@ -1226,11 +1237,11 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
 
     leEchelle =  new QLineEdit();
     leEchelle->setMaximumWidth(50);
-    QDoubleValidator *val = new QDoubleValidator();
-    val->setLocale(QLocale::C);
-    val->setNotation(QDoubleValidator::StandardNotation);
-    val->setRange(0.1f, 100.f);
-    leEchelle->setValidator(val);
+    // QDoubleValidator *val = new QDoubleValidator();
+    // val->setLocale(QLocale::C);
+    // val->setNotation(QDoubleValidator::StandardNotation);
+    // val->setRange(0.1f, 100.f);
+    // leEchelle->setValidator(val);
     tb2d->addWidget(new QLabel("Echelle:"));
     tb2d->addWidget(leEchelle);
     connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);

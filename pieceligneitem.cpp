@@ -6,16 +6,24 @@
 //---------------------------------------------------------
 PieceLigneItem::PieceLigneItem () {}
 PieceLigneItem::PieceLigneItem (PiecePolygonItem *parent, Ligne *ligne, int num) {
-    QPen pliMontagne (QBrush(Qt::darkGreen), 1, Qt::DashLine);
-    QPen pliVallee   (QBrush(Qt::darkRed), 1, Qt::DashDotDotLine);
+    // QPen pliMontagne (QBrush(Qt::darkGreen), 1, Qt::DashLine);
+    // QPen pliVallee   (QBrush(Qt::darkRed), 1, Qt::DashDotDotLine);
+    // QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
+    // QPen pliBord     (QBrush(Qt::red), 1, Qt::SolidLine);
+    QPen pliMontagne (QBrush(Qt::SolidPattern), 1, Qt::DashLine);
+    QPen pliVallee   (QBrush(Qt::SolidPattern), 1, Qt::DashDotDotLine);
     QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
-    QPen pliBord     (QBrush(Qt::red), 1, Qt::SolidLine);
+    QPen pliBord     (QBrush(Qt::SolidPattern), 1, Qt::SolidLine);
 
     setParentItem(parent);
     setLine(ligne->p1.x(), ligne->p1.y(),
             ligne->p2.x(), ligne->p2.y());
     this->ligne = ligne;
 
+    setFlag(QGraphicsItem::ItemIsSelectable);
+    setData(0, QVariant(ligne->id1));
+    setData(1, QVariant(ligne->id2));
+    setCursor(QCursor(Qt::PointingHandCursor));
     setFlag(QGraphicsItem::ItemIsSelectable);
     setData(0, QVariant(ligne->id1));
     setData(1, QVariant(ligne->id2));
