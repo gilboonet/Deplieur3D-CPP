@@ -28,8 +28,9 @@ signals:
     void changeCouleur (int);
     void changeNBCouleur (int, int);
     void changeFaceCouleur (int, int);
-    void peutColorierFace (int);
-    void pieceEnleveFace (int, int);
+    void peutColorierFace (int, int = -1);
+    void pieceEnleveFace (int);
+    void pieceEnleveFaces (int, int);
     void basculeLanguette(int, int);
     void hoverOn(int);
     void hoverOff(int);

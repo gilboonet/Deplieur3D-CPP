@@ -5,15 +5,14 @@
 #include "piecenumitem.h"
 //---------------------------------------------------------
 PieceLigneItem::PieceLigneItem () {}
-PieceLigneItem::PieceLigneItem (PiecePolygonItem *parent, Ligne *ligne, int num) {
-    // QPen pliMontagne (QBrush(Qt::darkGreen), 1, Qt::DashLine);
-    // QPen pliVallee   (QBrush(Qt::darkRed), 1, Qt::DashDotDotLine);
-    // QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
-    // QPen pliBord     (QBrush(Qt::red), 1, Qt::SolidLine);
-    QPen pliMontagne (QBrush(Qt::SolidPattern), 1, Qt::DashLine);
-    QPen pliVallee   (QBrush(Qt::SolidPattern), 1, Qt::DashDotDotLine);
-    QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
-    QPen pliBord     (QBrush(Qt::SolidPattern), 1, Qt::SolidLine);
+PieceLigneItem::PieceLigneItem (DepliageScene *scene, PiecePolygonItem *parent, Ligne *ligne, int num) {
+    this->sceneD = scene;
+    const int EP = 2;
+    QPen pliMontagne (QBrush(Qt::SolidPattern), EP, Qt::DashLine);
+    QPen pliVallee   (QBrush(Qt::SolidPattern), EP, Qt::DashDotDotLine);
+    //QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
+    QPen pliAucun    (QBrush(Qt::SolidPattern), EP/2, Qt::SolidLine);
+    QPen pliBord     (QBrush(Qt::SolidPattern), EP, Qt::SolidLine);
 
     setParentItem(parent);
     setLine(ligne->p1.x(), ligne->p1.y(),
@@ -21,13 +20,10 @@ PieceLigneItem::PieceLigneItem (PiecePolygonItem *parent, Ligne *ligne, int num)
     this->ligne = ligne;
 
     setFlag(QGraphicsItem::ItemIsSelectable);
+    setAcceptHoverEvents(true);
     setData(0, QVariant(ligne->id1));
     setData(1, QVariant(ligne->id2));
-    setCursor(QCursor(Qt::PointingHandCursor));
-    setFlag(QGraphicsItem::ItemIsSelectable);
-    setData(0, QVariant(ligne->id1));
-    setData(1, QVariant(ligne->id2));
-    setCursor(QCursor(Qt::PointingHandCursor));
+    setCursor(QCursor(Qt::OpenHandCursor));
     moveBy(-parentItem()->x(),  - parentItem()->y());
 
     PieceLangItem *pli = new PieceLangItem(ligne);
@@ -45,6 +41,7 @@ PieceLigneItem::PieceLigneItem (PiecePolygonItem *parent, Ligne *ligne, int num)
         else
             setPen(pliBord);
         PieceNumItem *gti = new PieceNumItem(this, ligne, num);
+        gti->setParentItem(this);
     }
     setZValue(2);
     QPointF deltaPiece = parentItem()->pos();
@@ -53,6 +50,25 @@ PieceLigneItem::PieceLigneItem (PiecePolygonItem *parent, Ligne *ligne, int num)
 
 void PieceLigneItem::mousePressEvent (QGraphicsSceneMouseEvent *event) {
     qDebug() << this->ligne->id1 << this->ligne->id2;
+    if (this->ligne->nb == 1) {
+        emit sceneD->peutColorierFace(this->ligne->id1, this->ligne->id2);
+    } else {
+        emit sceneD->pieceEnleveFaces(this->ligne->id1, this->ligne->id2);
+    }
+}
+
+void PieceLigneItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+{
+    QPen p = this->pen();
+    p.setColor(Qt::yellow);
+    setPen(p);
+}
+
+void PieceLigneItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+{
+    QPen p = this->pen();
+    p.setColor(Qt::black);
+    setPen(p);
 }
 //---------------------------------------------------------
 QPointF centroid4 (QPolygonF p) {

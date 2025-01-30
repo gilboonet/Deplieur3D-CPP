@@ -239,12 +239,12 @@ void Depliage::creeFaces2d (DepliageScene *scene2d) {
     scene2d->update();
 }
 
-bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
+bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
     auto convsf = [](QString el)
     {
         QString s(el);
-        size_t f = s.indexOf("/");
-        if (f > 0) {
+        qsizetype f = s.indexOf("/");
+        if (f > -1) {
             s.truncate(f);
         }
         return s.toInt() - 1;
@@ -262,7 +262,8 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
     line = stream.readLine();
     while (!line.isNull()) {
         QStringList parts = line.split(" ");
-        if (parts[0][0] == 'v') {
+
+        if (parts[0] == "v") {
             vec3d v (parts[1], parts[2], parts[3]);
             v = v.Vector_Div(50);
             verts.append(v);
@@ -280,7 +281,7 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
             }
         }
 
-        if (parts[0][0] == 'f') {
+        else if (parts[0] == "f") {
             std::vector<int> pts;
             pts = {convsf(parts[1]), convsf(parts[2]), convsf(parts[3])};
             faces.append({
@@ -288,12 +289,36 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
                 pts[0], pts[1], pts[2]
             });
         }
+
+        else if (parts[0] == "dp") {
+
+        }
+
+        else if (parts[0] == "de") {
+
+        }
+
+        else if (parts[0] == "d1") {
+
+        }
+
+        else if (parts[0] == "dl") {
+
+        }
+
+        else if (parts[0] == "dn") {
+
+        }
+
+        else if (parts[0] == "dd") {
+
+        }
+
         line = stream.readLine();
     }
     verts.clear();
 
     dim = vMax.Vector_Sub(vMin);
-
     vec3d vDelta;
     vDelta = vMax.Vector_Add(vMin);
     vDelta = vDelta.Vector_Div(2.0f);
@@ -306,10 +331,13 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata) {
     }
 
     qreal mx = std::max({dim.x, dim.y, dim.z});
-
-    qreal delta = mx / 5;
-    for (auto && v : faces) {
-        for (auto && vp : v.p)vp =  vp.Vector_Div(delta);
+    qDebug() << "max : " << mx;
+    if ((mx < 4) || (mx > 10)) {
+        qreal delta = 4 / mx;
+        for (auto && v : faces) {
+                for (auto && vp : v.p)
+                    vp =  vp.Vector_Mul(delta);
+        }
     }
 
     return true;
@@ -343,13 +371,7 @@ void Depliage::trouveVoisinage () {
                                 p = 2;
 
                             qreal c = faces[vi].isCoplanar(ti.p[p]);
-                            //tmpV[j] = Voisin(j, i, vi, next(k), sgn(c));
                             ti.voisins[j] = Voisin(j, i, vi, next(k), sgn(c));
-                            qDebug() << j << i << vi << next(k) <<  sgn(c);
-                            //if (j == 2) {
-                            //    ti.voisins = tmpV;
-                            //    qDebug() << i << ti.pi[0] << ti.pi[1] << ti.pi[2] << ti.voisins[0].nF << ti.voisins[1].nF << ti.voisins[2].nF;
-                            //}
                             ok = true;
                         }
                     if (!ok)

@@ -18,14 +18,11 @@
 #include <QTableWidget>
 #include <QSplitter>
 //---------------------------------------------------------
-// QT_BEGIN_NAMESPACE
-// namespace Ui {
-// class MainWindow;
-// }
-// QT_END_NAMESPACE
 
 QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece);
 void bascule (QObject *);
+QString strToHex(QString);
+
 QLabel* creeColorLabel (QColor);
 
 const QStringList gCOL = { "white",
@@ -76,7 +73,7 @@ private:
     QSplitter *splitter = nullptr;
     QStatusBar *statusbar = nullptr;
 
-    const QString nomApp = "Deplieur 3D v0.1 (09-01-25)";
+    const QString nomApp = "Deplieur 3D v0.1 (30-01-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
 
@@ -91,6 +88,7 @@ private slots:
     void lanceDemo (int);
     void exporte ();
     void sauveProjet ();
+    void chargeProjet ();
 
     void basculeCouleurs ();
     void bascule3d ();
@@ -109,9 +107,10 @@ private slots:
     void changeCouleur (int);
     void changeNBCouleur (int, int = 0);
     void changeFaceCouleur (int, int);
-    void peutColorierFace (int);
-    void pieceAjouteFace (int, int);
-    void pieceEnleveFace (int, int);
+    void peutColorierFace (int, int = -1);
+    void pieceAjouteFace(int, int);
+    bool pieceEnleveFace (int);
+    bool pieceEnleveFaces(int, int);
     void pieceCreeLignes (Piece*);
     void pieceMAJ (Piece *);
     void piecesMAJ ();
@@ -120,7 +119,7 @@ private slots:
     void tourneModele (qreal, qreal, qreal);
     void tourne2D (qreal);
 
-    void clicPli ();
+    // void clicPli ();
 
     void changeEchelle();
     void changeMarge (int);

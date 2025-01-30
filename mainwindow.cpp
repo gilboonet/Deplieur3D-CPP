@@ -22,6 +22,28 @@
 #include <QLocale>
 #include <QDebug>
 //---------------------------------------------------------
+QString strToHex(QString ch) {
+    QString ret;
+
+    for (int i = 0; i < ch.length(); i++) {
+        QString ch1 = ch.mid(i, 1);
+        QByteArray n = ch1.toLatin1();
+        QByteArray h = n.toHex();
+        ret.append(QString("%1").arg(h));
+    }
+
+    return ret;
+}
+//---------------------------------------------------------
+QString hexToStr(QString ch) {
+    QString ret;
+
+    QByteArray b = QByteArray::fromHex(ch.toLatin1());
+    ret = b.data();
+
+    return ret;
+}
+//---------------------------------------------------------
 void bascule (QObject *o) {
     // Affiche/Cache un widget
     QWidget *w = static_cast<QWidget*>(o);
@@ -78,15 +100,15 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     QMainWindow::keyPressEvent (event);
 }
 
-void MainWindow::clicPli () {
-    if (scene2d->selectedItems().isEmpty())
-        return;
+// void MainWindow::clicPli () {
+//     if (scene2d->selectedItems().isEmpty())
+//         return;
 
-    QGraphicsItem *gi = scene2d->selectedItems().first();
+//     QGraphicsItem *gi = scene2d->selectedItems().constFirst();
 
-    int id1 = gi->data(0).toInt();
-    int id2 = gi->data(1).toInt();
-}
+//     int id1 = gi->data(0).toInt();
+//     int id2 = gi->data(1).toInt();
+// }
 
 void MainWindow::changeEchelle()
 {
@@ -191,27 +213,36 @@ void MainWindow::changeFaceCouleur (int faceId, int couleurId) {
     dep.faces[faceId].col = couleurId;
 }
 
-void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
-    Piece *piece = &(dep.pieces[pieceId]);
+bool MainWindow::pieceEnleveFaces(int faceId1, int faceId2) {
+    if (pieceEnleveFace(faceId1))
+        return true;
+    else
+        return pieceEnleveFace(faceId2);
+}
+
+bool MainWindow::pieceEnleveFace (int faceId) {
     Facette *facette = &(dep.faces[faceId]);
+    int pieceId = facette->col;
+    Piece *piece = &(dep.pieces[pieceId]);
     TriangleItem2d *tCible = facette->triangleItem;
     QColor blanc = QColor(Qt::white);
-    bool ok = true;
     int nb = 0;
+
+    qDebug() << "Peut enlever" << faceId;
+    for (auto && e : piece->elements2)
+        qDebug() << e.de << e.vers;
+
     for (auto && e : piece->elements2) {
         if ((e.de == faceId) || (e.vers == faceId)) {
-            nb++;
+            if(e.de > -1)
+                nb++;
         }
     }
-    if (nb > 2)
-        ok = false;
-
-    if (!ok) {
-        statusbar->showMessage("Impossible (2 voisins) !");
-        return;
+    if (nb > 1) {
+        statusbar->showMessage("Impossible (>1 voisin) !");
+        return false;
     }
 
-    ok = false;
     if (piece->elements.removeOne(faceId)) {
         Attache att(faceId);
         piece->elements2.removeOne(att);
@@ -255,6 +286,7 @@ void MainWindow::pieceEnleveFace (int pieceId, int faceId) {
         statusbar->showMessage("Face enlevée !");
         scene3d->update();
     }
+    return true;
 }
 
 void MainWindow::pieceCreeLignes (Piece *piece) {
@@ -264,7 +296,7 @@ void MainWindow::pieceCreeLignes (Piece *piece) {
     QTransform transform;
     transform.translate(delta.x(), delta.y());
     Nums n1, nF;
-    int nC;
+    // int nC;
     for (auto && n : piece->elements) {
         Facette *face = &(dep.faces[n]);
         QPolygonF P = transform.map(face->triangleItem->polygon());
@@ -292,7 +324,7 @@ void MainWindow::pieceCreeLignes (Piece *piece) {
                     ligne.bLang = false;
                     break;
                 case 1 :
-                    nC = dep.chercheNum(ligne.id1, ligne.id2);
+                    // nC = dep.chercheNum(ligne.id1, ligne.id2);
                     nF = dep.nums[dep.nums.indexOf(Nums(ligne.id1, ligne.id2))];
                     if (nF.tlang == L01)
                         ligne.bLang = (ligne.id1 == nF.id2) && (ligne.id2 == nF.id1);
@@ -358,7 +390,9 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
         if (!voisinTrouve) {
             // 2°) Chercher en parcourant la pièce courante
-            for (int nEl : piece->elements) {
+            //for (const auto nEl : piece->elements) {
+            for (auto it = piece->elements.constBegin(); it != piece->elements.constEnd(); ++it) {
+                const int &nEl = *it;
                 Facette face = dep.faces[nEl];
                 if (face.col == coulCourante) {
                     for (Voisin v : face.voisins) {
@@ -397,7 +431,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
             ok = true;
             tmpP = trR.map(pCible);
-            for (int ni : piece->elements) {
+            for (auto it = piece->elements.constBegin(); it < piece->elements.constEnd(); ++it) {
+                const int& ni = *it;
                 if ((ni >= 0) && (ni< dep.faces.size())) {
                     QPolygonF t = dep.faces[ni].triangleItem->polygon();
                     QPolygonF ptest = tmpP.intersected(t);
@@ -442,7 +477,7 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         else {
             statusbar->showMessage("voisin non trouvé");
         }
-    }    
+    }
     if (ok) {
         piecesMAJ();
         face3dMAJ(piece, faceId);
@@ -479,7 +514,8 @@ void MainWindow::pieceMAJ (Piece *piece) {
     // recalc bLang
     for (auto&& l : piece->lignes) {
         int num = (l.nb == 1) ? dep.chercheNum(l.id1, l.id2) : -1;
-        PieceLigneItem *gli = new PieceLigneItem(piece->bord, &l, num);
+        PieceLigneItem *gli = new PieceLigneItem(scene2d, piece->bord, &l, num);
+        gli->setParentItem(piece->bord);
     }
     piece->pieceConstruitBord();
 }
@@ -495,10 +531,17 @@ void MainWindow::face3dMAJ (Piece *piece, int faceId) {
     }
 }
 
-void MainWindow::peutColorierFace (int faceId) {
+void MainWindow::peutColorierFace (int faceId, int faceSource) {
     // CLIC SUR UNE FACE 3D : COLORIER OU NON ?
     Facette *facette = &(dep.faces[faceId]);
-    int coul = tableCouleurs->currentRow();
+    int coul;
+    if (faceSource == -1)
+        coul = tableCouleurs->currentRow();
+    else {
+        coul = dep.faces[faceSource].col;
+        scene3d->dernFace = faceSource;
+        tableCouleurs->selectRow(coul);
+    }
 
     // SI COUL = 0
     // -> SI COUL FACE = 0 -> ne rien faire
@@ -508,17 +551,20 @@ void MainWindow::peutColorierFace (int faceId) {
             //qDebug() << "RIEN A FAIRE";
         } else {
             //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
-            pieceEnleveFace(facette->col, facette->id);
+            //pieceEnleveFace(facette->col, facette->id);
+            pieceEnleveFace(facette->id);
         }
     } else {
         if (facette->col == 0) {
-            qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
+            qDebug() << "AJOUTER " << facette->id << " A PIECE (" << coul << ")";
             pieceAjouteFace(coul, facette->id);
         } else {
             //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
-            pieceEnleveFace(facette->col, facette->id);
-            //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
-            pieceAjouteFace(coul, facette->id);
+            //pieceEnleveFace(facette->col, facette->id);
+            if (pieceEnleveFace(facette->id)) {
+                //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
+                pieceAjouteFace(coul, facette->id);
+            }
         }
     }
 }
@@ -531,9 +577,6 @@ void MainWindow::exporte () {
     QByteArray svgRoot;
 
     qreal s = 5.0f / 1.76f;
-    //QTransform tSPage;
-    //tSPage.scale(s, s);
-    //s *= dep.echelle;
     QTransform tS;
     tS.scale(s, s);
 
@@ -544,7 +587,6 @@ void MainWindow::exporte () {
 
     // Basic CSS support
     root.style("path").set_attr("fill", "none");
-
 
     SVG::Group *gPage, *gNums;
     SVG::Path *chCoupe, *chPliM, *chPliV;
@@ -667,7 +709,7 @@ void MainWindow::exporte () {
         }
     }
     svgRoot = QByteArray::fromStdString(std::string(root));
-    QFileDialog::saveFileContent(svgRoot, "myExport.svg");
+    QFileDialog::saveFileContent(svgRoot, "MonExport.svg");
 }
 
 void MainWindow::sauveProjet()
@@ -715,10 +757,11 @@ void MainWindow::sauveProjet()
 
         if (ok) {
             // PTS 3D (VECTEURS)
+            vnv = vnv.Vector_Mul(50);
             ligne = QString("v %1 %2 %3")
-                .arg(vnv.x, 0, 'f', 4)
-                .arg(vnv.y, 0, 'f', 4)
-                .arg(vnv.z, 0, 'f', 4);
+                        .arg(vnv.x, 0, 'f', 4)
+                        .arg(vnv.y, 0, 'f', 4)
+                        .arg(vnv.z, 0, 'f', 4);
             sauve.append(ligne);
         }
     }
@@ -733,6 +776,8 @@ void MainWindow::sauveProjet()
         sauve.append(ligne);
     }
 
+    sauve.append("#FIN OBJ");
+
     // 2°) sauve donnees du depliage
 
     // pieces
@@ -744,17 +789,21 @@ void MainWindow::sauveProjet()
             continue;
 
         // PIECE
-        ligne = QString("dep piece %1 %2 %3 %4 %5")
-            .arg(p.id)
-            .arg(p.couleur.name())
-            .arg(p.cDesign.name())
-            .arg(p.bord->x(), 0, 'f', 2)
-            .arg(p.bord->y(), 0, 'f', 2);
+        QString libelle = tableCouleurs->item(p.id, 3)->text();
+        if (libelle.isEmpty())
+            libelle = QString("Piece #%1").arg(p.id);
+
+        ligne = QString("dp %1 %2 %3 %4 %5 %6")
+                    .arg(p.id)
+                    .arg(p.couleur.name(), p.cDesign.name())
+                    .arg(p.bord->x(), 0, 'f', 2)
+                    .arg(p.bord->y(), 0, 'f', 2)
+                    .arg(strToHex(libelle));
         sauve.append(ligne);
 
         // ELEMENTS (de PIECE)
         for (auto && pt : p.elements2) {
-            ligne = QString("dep pElem %1 %2")
+            ligne = QString("de %1 %2")
             .arg(pt.de)
             .arg(pt.vers);
             sauve.append(ligne);
@@ -763,7 +812,7 @@ void MainWindow::sauveProjet()
         // PREMIER ELEMENT (de PIECE)
         int nEl1 = p.elements2.first().vers;
         QPolygonF pEl = dep.faces[nEl1].triangleItem->polygon();
-        ligne = QString("dep pEl1 %1 %2 %3 %4 %5 %6")
+        ligne = QString("d1 %1 %2 %3 %4 %5 %6")
                     .arg(pEl[0].x(), 0, 'f', 2)
                     .arg(pEl[0].y(), 0, 'f', 2)
                     .arg(pEl[1].x(), 0, 'f', 2)
@@ -774,19 +823,19 @@ void MainWindow::sauveProjet()
     }
 
     // numerotation + languettes
-    ligne = QString("dep type lang %1").arg(dep.typeLang);
+    ligne = QString("dl %1").arg(dep.typeLang);
     sauve.append(ligne);
 
     for (auto && n : dep.nums) {
-        ligne = QString("dep nums %1 %2 %3 %4")
+        ligne = QString("dn %1 %2 %3 %4")
             .arg(n.id1)
             .arg(n.id2)
             .arg(n.num)
             .arg(static_cast<int>(n.tlang));
+        sauve.append(ligne);
     }
-    sauve.append(ligne);
 
-    ligne = QString("dep type page %1 %2")
+    ligne = QString("dd %1 %2")
         .arg(dep.dimPage.x())
         .arg(dep.dimPage.y());
     sauve.append(ligne);
@@ -794,6 +843,31 @@ void MainWindow::sauveProjet()
 
     qbSauve = sauve.join('\n').toUtf8();
     QFileDialog::saveFileContent(qbSauve, "monProjet.obj.dep");
+}
+
+void MainWindow::chargeProjet()
+{
+    // Nouveau projet : choisit un fichier .obj et le charge
+    auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
+        if (!fileName.isEmpty()) {
+            // Use fileName and fileContent
+            dep.nums.clear();
+            dep.pieces.clear();
+            dep.faces.clear();
+            dep = Depliage();
+            dep.ModeleOK = true;
+            scene3d->itemColorId = -1;
+            scene3d->itemColor = Qt::white;
+            delete(scene2d->pageTemoin);
+            leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+            QFileInfo f(fileName);
+            setWindowTitle(QString("%1 [%2]").arg(nomApp, f.fileName()));
+            dep.chargeFichierOBJ(fileContent, true);
+            chargeFichier();
+            dep.ModeleCharge = true;
+        }
+    };
+    QFileDialog::getOpenFileContent("Projet Deplieur (*.obj.dep)",  fileContentReady);
 }
 
 QPainterPath MainWindow::construitChemin(QList<QLineF> lignes) {
@@ -1038,7 +1112,7 @@ void MainWindow::nouveau () {
             delete(scene2d->pageTemoin);
             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
             QFileInfo f(fileName);
-            setWindowTitle(QString("%1 [%2]").arg(nomApp).arg(f.fileName()));
+            setWindowTitle(QString("%1 [%2]").arg(nomApp, f.fileName()));
             dep.chargeFichierOBJ(fileContent);
             chargeFichier();
             dep.ModeleCharge = true;
@@ -1067,6 +1141,10 @@ void MainWindow::chargeFichier() {
     connect(scene2d, &DepliageScene::basculeLanguette, this, &MainWindow::basculeLanguette);
     connect(scene3d, &DepliageScene::hoverOn, this, &MainWindow::hoverOn);
     connect(scene3d, &DepliageScene::hoverOff, this, &MainWindow::hoverOff);
+
+    connect(scene2d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
+    connect(scene2d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
+    connect(scene2d, &DepliageScene::pieceEnleveFaces, this, &MainWindow::pieceEnleveFaces);
 
     //connect(scene2d, &DepliageScene::selectionChanged, this, &MainWindow::clicPli);
 
@@ -1131,8 +1209,9 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     connect(action, &QAction::triggered, this, &MainWindow::nouveau);
 
     action = new QAction(QIcon(":/resources/file_open.png"), "Ouvrir projet", this);
-    action->setEnabled(false);
+    action->setEnabled(true);
     tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::chargeProjet);
 
     action = new QAction(QIcon(":/resources/file_save.png"), "Sauver projet", this);
     action->setEnabled(true);

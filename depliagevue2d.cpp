@@ -37,8 +37,9 @@ void DepliageVue2d::mouseMoveEvent (QMouseEvent *event) {
         if (adx > 4 || ady > 3) {
             if (adx < 20 && ady < 15) {
                 //qreal dZ = dx;
-                qreal dX = dy/18;
+                //qreal dX = dy/18;
                 emit tourne2D (dx);
+                //emit tourne2D (dX);
                 _panStartX = event->position().x();
                 _panStartY = event->position().y();
                 event->accept();

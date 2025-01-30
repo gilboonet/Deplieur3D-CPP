@@ -1,5 +1,4 @@
 #include "piecenumitem.h"
-//#include "piecelangitem.h"
 
 PieceNumItem::PieceNumItem() {}
 
@@ -15,6 +14,7 @@ PieceNumItem::PieceNumItem (PieceLigneItem *parentItem, Ligne *ligne, int num) {
     tf.setLetterSpacing(QFont::AbsoluteSpacing, -2);
     setFont(tf);
     setFlag(QGraphicsItem::ItemIsSelectable, true);
+    setAcceptHoverEvents(true);
     setCursor(Qt::PointingHandCursor);
 
     QPointF b = QPointF(boundingRect().width() / 2,
@@ -28,4 +28,14 @@ PieceNumItem::PieceNumItem (PieceLigneItem *parentItem, Ligne *ligne, int num) {
 void PieceNumItem::mousePressEvent (QGraphicsSceneMouseEvent *event)
 {
     emit sceneD->basculeLanguette(ligne->id1, ligne->id2);
+}
+
+void PieceNumItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+{
+    setBrush(QBrush(Qt::yellow));
+}
+
+void PieceNumItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+{
+    setBrush(QBrush(Qt::blue));
 }

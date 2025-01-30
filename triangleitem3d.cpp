@@ -43,7 +43,7 @@ void TriangleItem3d::editeTriangle () {
         if (col != sceneD->itemColorId) {
             emit sceneD->peutColorierFace(this->id);
         } else {
-            emit sceneD->pieceEnleveFace(this->col, this->id);
+            emit sceneD->pieceEnleveFace(this->id);
         }
         sceneD->update(boundingRect());
     }

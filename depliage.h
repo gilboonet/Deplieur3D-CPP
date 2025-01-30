@@ -33,7 +33,7 @@ public:
 
     void dessineModele (DepliageScene *);
     void creeFaces2d (DepliageScene *);
-    bool chargeFichierOBJ (const QByteArray &fdata);
+    bool chargeFichierOBJ (const QByteArray &fdata, bool estProjet = false);
     void trouveVoisinage ();
     int chercheNum (int id1, int id2);
 };
