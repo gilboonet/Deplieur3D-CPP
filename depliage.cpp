@@ -348,7 +348,6 @@ void Depliage::trouveVoisinage () {
     int vi;
     bool ok;
     int nbFaces = faces.size();
-    //std::array<Voisin, 3> tmpV;
 
     for (auto &&ti : faces) {
         i = ti.id;

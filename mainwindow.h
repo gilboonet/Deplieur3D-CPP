@@ -9,7 +9,6 @@
 #include "depliagevue2d.h"
 #include "filedownloader.h"
 
-
 #include <QMainWindow>
 #include <QStatusBar>
 #include <QLineEdit>
@@ -22,33 +21,7 @@
 QList<QList<QPointF>> PtsDepuisLignesDeCoupe(Piece *piece);
 void bascule (QObject *);
 QString strToHex(QString);
-
 QLabel* creeColorLabel (QColor);
-
-const QStringList gCOL = { "white",
-    "Brown", "Cyan", "Crimson", "Chartreuse", "BurlyWood", "Peru", "CadetBlue",
-    "Chocolate", "Fuchsia", "Gold", "Coral", "Aquamarine", "Tomato",
-    "BlueViolet", "CornflowerBlue", "Maroon", "MediumAquaMarine", "MediumBlue",
-    "MediumOrchid", "MediumPurple", "MediumSeaGreen", "MediumSlateBlue",
-    "MediumSpringGreen", "Lavender", "MediumTurquoise", "MediumVioletRed",
-    "MidnightBlue", "MintCream", "MistyRose", "DarkCyan", "DarkGoldenRod",
-    "DarkGray", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
-    "DarkOrchid", "DarkSalmon", "DarkSeaGreen", "DarkTurquoise", "DarkViolet",
-    "DeepPink", "DeepSkyBlue", "DimGray", "DodgerBlue", "Turquoise", "Violet",
-    "FireBrick", "ForestGreen", "GoldenRod", "IndianRed",
-    "Indigo", "GreenYellow", "HoneyDew", "HotPink", "Khaki", "YellowGreen",
-    "LavenderBlush", "LawnGreen", "LemonChiffon", "LightBlue", "LightCoral",
-    "LightCyan", "LightGoldenRodYellow", "LightGray", "Olive",
-    "LightGreen", "LightPink", "LightSalmon", "LightSeaGreen", "LightSkyBlue",
-    "LightSlateGray", "LightSteelBlue", "LightYellow", "Lime", "LimeGreen",
-    "Linen", "Moccasin", "NavajoWhite", "Navy", "OldLace", "Olive", "Yellow",
-    "OliveDrab", "Orange", "OrangeRed", "Orchid", "PaleGoldenRod", "Wheat",
-    "PaleTurquoise", "PaleVioletRed", "PapayaWhip", "PeachPuff", "WhiteSmoke",
-    "Pink", "Plum", "PowderBlue", "Purple", "RosyBrown", "RoyalBlue",
-    "SaddleBrown", "Salmon", "SandyBrown", "SeaGreen", "SeaShell", "Sienna",
-    "Silver", "SkyBlue", "SlateBlue", "SlateGray", "Snow", "SpringGreen",
-    "SteelBlue", "Tan", "Teal", "Thistle"
-};
 
 class MainWindow : public QMainWindow
 {
@@ -57,13 +30,13 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    QStringList gCOL;
     Depliage dep;
     DepliageScene *scene3d, *scene2d;
     FileDownloader *m_demoFichier;
     bool demoMode = false;
 
 private:
-    //Ui::MainWindow *ui;
     QLineEdit *leEchelle = nullptr;
     QComboBox *cbLanguettes = nullptr;
     QComboBox *cbDemo = nullptr;
@@ -73,7 +46,7 @@ private:
     QSplitter *splitter = nullptr;
     QStatusBar *statusbar = nullptr;
 
-    const QString nomApp = "Deplieur 3D v0.1 (30-01-25)";
+    const QString nomApp = "Deplieur 3D v0.1 (04-02-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
 
@@ -118,8 +91,6 @@ private slots:
 
     void tourneModele (qreal, qreal, qreal);
     void tourne2D (qreal);
-
-    // void clicPli ();
 
     void changeEchelle();
     void changeMarge (int);

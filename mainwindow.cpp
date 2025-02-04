@@ -100,16 +100,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     QMainWindow::keyPressEvent (event);
 }
 
-// void MainWindow::clicPli () {
-//     if (scene2d->selectedItems().isEmpty())
-//         return;
-
-//     QGraphicsItem *gi = scene2d->selectedItems().constFirst();
-
-//     int id1 = gi->data(0).toInt();
-//     int id2 = gi->data(1).toInt();
-// }
-
 void MainWindow::changeEchelle()
 {
     QString ch = leEchelle->text();
@@ -584,7 +574,6 @@ void MainWindow::peutColorierFace (int faceId, int faceSource) {
             //qDebug() << "RIEN A FAIRE";
         } else {
             //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
-            //pieceEnleveFace(facette->col, facette->id);
             pieceEnleveFace(facette->id);
         }
     } else {
@@ -593,7 +582,6 @@ void MainWindow::peutColorierFace (int faceId, int faceSource) {
             pieceAjouteFace(coul, facette->id);
         } else {
             //qDebug() << "ENLEVER DE PIECE (coul = " << facette->col << ")";
-            //pieceEnleveFace(facette->col, facette->id);
             if (pieceEnleveFace(facette->id)) {
                 //qDebug() << "AJOUTER A PIECE (coul = " << coul << ")";
                 pieceAjouteFace(coul, facette->id);
@@ -880,7 +868,7 @@ void MainWindow::sauveProjet()
 
 void MainWindow::chargeProjet()
 {
-    // Nouveau projet : choisit un fichier .obj et le charge
+    // Nouveau projet : choisit un fichier .objet.dep et le charge
     auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
         if (!fileName.isEmpty()) {
             // Use fileName and fileContent
@@ -937,7 +925,7 @@ void MainWindow::tourne2D (qreal a) {
     if (scene2d->selectedItems().isEmpty())
         return;
 
-    PiecePolygonItem *bord = static_cast<PiecePolygonItem*>(scene2d->selectedItems().first());
+    PiecePolygonItem *bord = static_cast<PiecePolygonItem*>(scene2d->selectedItems().constFirst());
     if (bord) {
         QPointF centre = bord->boundingRect().center();
         QTransform transform;
@@ -1179,8 +1167,6 @@ void MainWindow::chargeFichier() {
     connect(scene2d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
     connect(scene2d, &DepliageScene::pieceEnleveFaces, this, &MainWindow::pieceEnleveFaces);
 
-    //connect(scene2d, &DepliageScene::selectionChanged, this, &MainWindow::clicPli);
-
     scene2d->nbPages = 1;
     dep.creeFaces2d(scene2d);
     dep.trouveVoisinage();
@@ -1210,6 +1196,10 @@ void MainWindow::lanceDemo(int index) {
 // CONSTRUCTEUR
 MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     // DEFINIT L'INTERFACE
+
+    QString tmpCol = "white, Brown, Cyan, Crimson, Chartreuse, Green, BurlyWood, Yellow, Peru, CadetBlue, Chocolate, Fuchsia, Gold, Coral, Aquamarine, Tomato, BlueViolet, CornflowerBlue, Maroon, MediumAquaMarine, MediumBlue, MediumOrchid, MediumPurple, MediumSeaGreen, MediumSlateBlue, MediumSpringGreen, Lavender, MediumTurquoise, MediumVioletRed, MidnightBlue, MintCream, MistyRose, DarkCyan, DarkGoldenRod, DarkGray, DarkKhaki, DarkMagenta, DarkOliveGreen, DarkOrange, DarkOrchid, DarkSalmon, DarkSeaGreen, DarkTurquoise, DarkViolet, DeepPink, DeepSkyBlue, DimGray, DodgerBlue, Turquoise, Violet, FireBrick, ForestGreen, GoldenRod, IndianRed, Indigo, GreenYellow, HoneyDew, HotPink, Khaki, YellowGreen, LavenderBlush, LawnGreen, LemonChiffon, LightBlue, LightCoral, LightCyan, LightGoldenRodYellow, LightGray, Olive, LightGreen, LightPink, LightSalmon, LightSeaGreen, LightSkyBlue, LightSlateGray, LightSteelBlue, LightYellow, Lime, LimeGreen, Linen, Moccasin, NavajoWhite, Navy, OldLace, Olive, Yellow, OliveDrab, Orange, OrangeRed, Orchid, PaleGoldenRod, Wheat, PaleTurquoise, PaleVioletRed, PapayaWhip, PeachPuff, WhiteSmoke, Pink, Plum, PowderBlue, Purple, RosyBrown, RoyalBlue, SaddleBrown, Salmon, SandyBrown, SeaGreen, SeaShell, Sienna, Silver, SkyBlue, SlateBlue, SlateGray, Snow, SpringGreen, SteelBlue, Tan, Teal, Thistle";
+    gCOL.append(tmpCol.split(','));
+    tmpCol.clear();
 
     statusbar = statusBar();
     statusbar->showMessage(nomApp);
