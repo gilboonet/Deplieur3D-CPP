@@ -230,22 +230,40 @@ bool MainWindow::pieceEnleveFace (int faceId) {
 
     qDebug() << "Peut enlever" << faceId;
     for (auto && e : piece->elements2)
-        qDebug() << e.de << e.vers;
+        qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
 
-    for (auto && e : piece->elements2) {
-        if ((e.de == faceId) || (e.vers == faceId)) {
-            if(e.de > -1)
+
+    bool ok = false;
+    if (piece->elements2.constFirst().vers == faceId)
+        ok = true;
+    else if (piece->elements2.constLast().vers == faceId)
+        ok = true;
+    else {
+        for (auto && e : piece->elements2) {
+            if ((e.de == faceId) || ((e.de > -1) && (e.vers == faceId))) {
                 nb++;
+            }
+        }
+        if (nb < 2) {
+            ok = true;
         }
     }
-    if (nb > 1) {
+
+    if (!ok) {
         statusbar->showMessage("Impossible (>1 voisin) !");
         return false;
     }
 
     if (piece->elements.removeOne(faceId)) {
-        Attache att(faceId);
-        piece->elements2.removeOne(att);
+        //Attache att(faceId);
+        //piece->elements2.removeOne(att);
+        for (auto &&el : piece->elements2) {
+            if (el.vers == faceId) {
+                piece->elements2.removeOne(el);
+                break;
+            }
+        }
+
         tCible->setParentItem(0);
         if (tCible->hoverOn)
             hoverOff(tCible->id);
@@ -390,10 +408,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
         if (!voisinTrouve) {
             // 2°) Chercher en parcourant la pièce courante
-            //for (const auto nEl : piece->elements) {
             for (auto it = piece->elements.constBegin(); it != piece->elements.constEnd(); ++it) {
-                const int &nEl = *it;
-                Facette face = dep.faces[nEl];
+                Facette face = dep.faces[*it];
                 if (face.col == coulCourante) {
                     for (Voisin v : face.voisins) {
                         if (v.nF == faceId) {
@@ -405,6 +421,19 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                 }
                 if (voisinTrouve)
                     break;
+            }
+        }
+
+        if (!voisinTrouve) {
+            // 2°) Chercher en parcourant la face
+            for (Voisin v : facette->voisins) {
+                Facette vFace = dep.faces[v.nF];
+                qDebug() << v.id << v.idx << v.nF << v.pnF;
+                if (vFace.col == coulCourante) {
+                    voisinTrouve = true;
+                    vT = v;
+                    break;
+                }
             }
         }
 
@@ -479,6 +508,10 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         }
     }
     if (ok) {
+        qDebug() << "Piece" << piece->id << "ajoute" << faceId;
+        for (auto && e : piece->elements2)
+            qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
+
         piecesMAJ();
         face3dMAJ(piece, faceId);
     }

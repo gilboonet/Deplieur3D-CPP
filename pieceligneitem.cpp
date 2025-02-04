@@ -7,7 +7,7 @@
 PieceLigneItem::PieceLigneItem () {}
 PieceLigneItem::PieceLigneItem (DepliageScene *scene, PiecePolygonItem *parent, Ligne *ligne, int num) {
     this->sceneD = scene;
-    const int EP = 2;
+    const int EP = 1;
     QPen pliMontagne (QBrush(Qt::SolidPattern), EP, Qt::DashLine);
     QPen pliVallee   (QBrush(Qt::SolidPattern), EP, Qt::DashDotDotLine);
     //QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
