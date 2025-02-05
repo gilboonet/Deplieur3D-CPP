@@ -26,6 +26,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(Deplieur
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        mainwindow.h
         resources.qrc
         depliage.h depliage.cpp
         mat4x4.h mat4x4.cpp

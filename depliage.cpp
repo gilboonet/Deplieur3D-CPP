@@ -13,6 +13,7 @@ Depliage::Depliage () {
     faces.clear();
     prochainNum = 0;
     nums.clear();
+    dp.clear();
     echelle = 1;
     ModeleOK = false;
     typeLang = 0;
@@ -240,7 +241,7 @@ void Depliage::creeFaces2d (DepliageScene *scene2d) {
 }
 
 bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
-    auto convsf = [](QString el)
+    auto convsf = [](QString el) -> int
     {
         QString s(el);
         qsizetype f = s.indexOf("/");
@@ -291,26 +292,32 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
         }
 
         else if (parts[0] == "dp") {
+            dp.append(line);
 
         }
 
         else if (parts[0] == "de") {
+            dp.append(line);
 
         }
 
         else if (parts[0] == "d1") {
+            dp.append(line);
 
         }
 
         else if (parts[0] == "dl") {
+            dp.append(line);
 
         }
 
         else if (parts[0] == "dn") {
+            dp.append(line);
 
         }
 
         else if (parts[0] == "dd") {
+            dp.append(line);
 
         }
 

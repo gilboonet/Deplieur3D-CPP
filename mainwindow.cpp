@@ -219,8 +219,8 @@ bool MainWindow::pieceEnleveFace (int faceId) {
     int nb = 0;
 
     qDebug() << "Peut enlever" << faceId;
-    for (auto && e : piece->elements2)
-        qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
+    //for (auto && e : piece->elements2)
+    //    qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
 
 
     bool ok = false;
@@ -418,7 +418,7 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
             // 2°) Chercher en parcourant la face
             for (Voisin v : facette->voisins) {
                 Facette vFace = dep.faces[v.nF];
-                qDebug() << v.id << v.idx << v.nF << v.pnF;
+                //qDebug() << v.id << v.idx << v.nF << v.pnF;
                 if (vFace.col == coulCourante) {
                     voisinTrouve = true;
                     vT = v;
@@ -499,8 +499,8 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
     }
     if (ok) {
         qDebug() << "Piece" << piece->id << "ajoute" << faceId;
-        for (auto && e : piece->elements2)
-            qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
+        //for (auto && e : piece->elements2)
+        //    qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
 
         piecesMAJ();
         face3dMAJ(piece, faceId);
@@ -822,14 +822,6 @@ void MainWindow::sauveProjet()
                     .arg(strToHex(libelle));
         sauve.append(ligne);
 
-        // ELEMENTS (de PIECE)
-        for (auto && pt : p.elements2) {
-            ligne = QString("de %1 %2")
-            .arg(pt.de)
-            .arg(pt.vers);
-            sauve.append(ligne);
-        }
-
         // PREMIER ELEMENT (de PIECE)
         int nEl1 = p.elements2.first().vers;
         QPolygonF pEl = dep.faces[nEl1].triangleItem->polygon();
@@ -841,6 +833,14 @@ void MainWindow::sauveProjet()
                     .arg(pEl[2].x(), 0, 'f', 2)
                     .arg(pEl[2].y(), 0, 'f', 2);
         sauve.append(ligne);
+
+        // ELEMENTS (de PIECE)
+        for (auto && pt : p.elements2) {
+            ligne = QString("de %1 %2")
+            .arg(pt.de)
+                .arg(pt.vers);
+            sauve.append(ligne);
+        }
     }
 
     // numerotation + languettes
@@ -875,6 +875,7 @@ void MainWindow::chargeProjet()
             dep.nums.clear();
             dep.pieces.clear();
             dep.faces.clear();
+            dep.dp.clear();
             dep = Depliage();
             dep.ModeleOK = true;
             scene3d->itemColorId = -1;
@@ -886,6 +887,69 @@ void MainWindow::chargeProjet()
             dep.chargeFichierOBJ(fileContent, true);
             chargeFichier();
             dep.ModeleCharge = true;
+
+            // Ajout PIECES
+            int tmpId;
+            QColor tmpC1, tmpC2;
+            qreal tmpX, tmpY;
+            QString tmpLib;
+
+            int tmpDe, tmpVers;
+
+            QPolygonF tmpP;
+
+            Piece *piece;
+            Facette *facette;
+
+            for (auto && line : dep.dp) {
+                QStringList parts = line.split(" ");
+
+                if (parts[0] == "dp") { // PIECE
+                    tmpId = parts[1].toInt();
+                    tmpC1 = QColor(parts[2]);
+                    tmpC2 = QColor(parts[3]);
+                    tmpX = parts[4].toFloat();
+                    tmpY = parts[5].toFloat();
+                    tmpLib = hexToStr(parts[6]);
+
+                    this->couleurNouveau();
+                    tableCouleurs->item(tmpId, 3)->setText(tmpLib);
+                    qDebug() << tmpC1 << tmpC2 << tmpX << tmpY << tmpLib;
+                }
+
+                else if (parts[0] == "d1") { // PREMIER ELEMENT (de PIECE)
+                    tmpP.clear();
+                    tmpP << QPointF(parts[1].toFloat(), parts[2].toFloat());
+                    tmpP << QPointF(parts[3].toFloat(), parts[4].toFloat());
+                    tmpP << QPointF(parts[5].toFloat(), parts[6].toFloat());
+                }
+
+                else if (parts[0] == "de") { // ELEMENT (de PIECE)
+                    tmpDe = parts[1].toInt();
+                    tmpVers = parts[2].toInt();
+
+                    scene3d->dernFace = tmpDe;
+                    pieceAjouteFace(tmpId, tmpVers);
+
+                    if (tmpDe == -1) {
+                        piece = &(dep.pieces[tmpId]);
+                        facette = &(dep.faces[tmpVers]);
+                        facette->triangleItem->setPolygon(tmpP);
+                        piecesMAJ();
+                        piece->bord->setPos(tmpX, tmpY);
+                    }
+                }
+
+                else if (parts[0] == "dl") { // type Languettes
+                }
+
+                else if (parts[0] == "dn") { // num + lang
+
+                }
+
+                else if (parts[0] == "dd") { // dimensions page
+                }
+            }
         }
     };
     QFileDialog::getOpenFileContent("Projet Deplieur (*.obj.dep)",  fileContentReady);

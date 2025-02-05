@@ -30,6 +30,7 @@ public:
     bool ModeleCharge = false;
     int typeLang; // 0, 1 ou 2
     QPoint dimPage;
+    QStringList dp;
 
     void dessineModele (DepliageScene *);
     void creeFaces2d (DepliageScene *);
