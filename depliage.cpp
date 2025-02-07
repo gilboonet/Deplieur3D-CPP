@@ -339,7 +339,8 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
 
     qreal mx = std::max({dim.x, dim.y, dim.z});
     qDebug() << "max : " << mx;
-    if ((mx < 4) || (mx > 10)) {
+    //if ((mx < 4) || (mx > 10)) {
+    if ((mx > 10)) {
         qreal delta = 4 / mx;
         for (auto && v : faces) {
                 for (auto && vp : v.p)
