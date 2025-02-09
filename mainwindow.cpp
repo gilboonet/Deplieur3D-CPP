@@ -224,10 +224,13 @@ bool MainWindow::pieceEnleveFace (int faceId) {
 
 
     bool ok = false;
-    if (piece->elements2.constFirst().vers == faceId)
+    // if (piece->elements2.constFirst().vers == faceId) {
+    //     ok = true;
+    // }
+    //else
+    if (piece->elements2.constLast().vers == faceId) {
         ok = true;
-    else if (piece->elements2.constLast().vers == faceId)
-        ok = true;
+    }
     else {
         for (auto && e : piece->elements2) {
             if ((e.de == faceId) || ((e.de > -1) && (e.vers == faceId))) {
@@ -237,6 +240,7 @@ bool MainWindow::pieceEnleveFace (int faceId) {
         if (nb < 2) {
             ok = true;
         }
+        qDebug() << "voisins : " << nb;
     }
 
     if (!ok) {
@@ -361,7 +365,12 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
 
     if (piece->nb == 0) { // piece vide -> créer groupe + ajouter 1ère face
         if (!piece->bord) {
-            piece->bord = new PiecePolygonItem(scene2d, piece->couleur);
+            piece->bord = new PiecePolygonItem(scene2d, piece->couleur, piece->id);
+            piece->bord->setZValue(2);
+            piece->num = new QGraphicsSimpleTextItem(piece->bord);
+            //piece->num->setFlag(QGraphicsItem::ItemIsSelectable);
+            piece->num->setFlag(QGraphicsItem::ItemIsMovable);
+            piece->num->setZValue(1);
         }
 
         tCible->setParentItem(piece->bord);
@@ -405,25 +414,13 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                         if (v.nF == faceId) {
                             voisinTrouve = true;
                             vT = v;
+                            scene3d->dernFace = v.pnF;
                             break;
                         }
                     }
                 }
                 if (voisinTrouve)
                     break;
-            }
-        }
-
-        if (!voisinTrouve) {
-            // 2°) Chercher en parcourant la face
-            for (Voisin v : facette->voisins) {
-                Facette vFace = dep.faces[v.nF];
-                //qDebug() << v.id << v.idx << v.nF << v.pnF;
-                if (vFace.col == coulCourante) {
-                    voisinTrouve = true;
-                    vT = v;
-                    break;
-                }
             }
         }
 
@@ -498,10 +495,9 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
         }
     }
     if (ok) {
-        qDebug() << "Piece" << piece->id << "ajoute" << faceId;
-        //for (auto && e : piece->elements2)
-        //    qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
-
+        // qDebug() << "Piece" << piece->id << "ajoute" << faceId;
+        // for (auto && e : piece->elements2)
+        //     qDebug() << QString("%1 %2").arg(e.de).arg(e.vers);
         piecesMAJ();
         face3dMAJ(piece, faceId);
     }
@@ -514,8 +510,10 @@ void MainWindow::piecesMAJ () {
     dep.prochainNum = 0;
 
     // pas de piece "0"
+    Piece *piece;
     for (int i = 1; i < dep.pieces.size(); i++) {
-        pieceMAJ(&(dep.pieces[i]));
+        piece = &(dep.pieces[i]);
+        pieceMAJ(piece);
     }
 }
 
@@ -541,6 +539,22 @@ void MainWindow::pieceMAJ (Piece *piece) {
         gli->setParentItem(piece->bord);
     }
     piece->pieceConstruitBord();
+
+    pieceMAJCentre(piece);
+}
+
+void MainWindow::pieceMAJCentre(Piece *piece) {
+    piece->num->setText(QString("%1").arg(piece->id));
+    QPointF pmin = dep.faces[piece->elements.constFirst()].triangleItem->boundingRect().center();
+    QPointF pbase = piece->bord->boundingRect().center();
+    for (auto &&ne : piece->elements){
+        QPointF p = dep.faces[ne].triangleItem->boundingRect().center();
+        if (distance(pmin, pbase) > distance(p, pbase))
+            pmin = p;
+    }
+
+    QRectF bR = piece->num->boundingRect();
+    piece->num->setPos( pmin.x() - bR.width()/2, pmin.y() - bR.height()/2 );
 }
 
 void MainWindow::face3dMAJ (Piece *piece, int faceId) {
@@ -552,6 +566,15 @@ void MainWindow::face3dMAJ (Piece *piece, int faceId) {
             fI->update();
         }
     }
+}
+
+void MainWindow::tableNumerote()
+{
+    QStringList hhl;
+    hhl << " ";
+    for (int i = 1; i < tableCouleurs->rowCount(); i++)
+        hhl << QString("%1").arg(i);
+    tableCouleurs->setVerticalHeaderLabels(hhl);
 }
 
 void MainWindow::peutColorierFace (int faceId, int faceSource) {
@@ -856,11 +879,11 @@ void MainWindow::sauveProjet()
         sauve.append(ligne);
     }
 
-    ligne = QString("dd %1 %2")
+    ligne = QString("dd %1 %2 %3")
         .arg(dep.dimPage.x())
-        .arg(dep.dimPage.y());
+        .arg(dep.dimPage.y())
+        .arg(scene2d->nbPages);
     sauve.append(ligne);
-
 
     qbSauve = sauve.join('\n').toUtf8();
     QFileDialog::saveFileContent(qbSauve, "monProjet.obj.dep");
@@ -948,6 +971,11 @@ void MainWindow::chargeProjet()
                 }
 
                 else if (parts[0] == "dd") { // dimensions page
+                    dep.dimPage = QPoint(parts[1].toInt(), parts[2].toInt());
+                    scene2d->nbPages = parts[3].toInt();
+                    scene2d->dim = dep.dimPage;
+                    scene2d->update();
+                    ajuste2D();
                 }
             }
         }
@@ -985,11 +1013,8 @@ void MainWindow::tourneModele (qreal dZ, qreal dX, qreal dY) {
     dep.dessineModele(scene3d);
 }
 
-void MainWindow::tourne2D (qreal a) {
-    if (scene2d->selectedItems().isEmpty())
-        return;
-
-    PiecePolygonItem *bord = static_cast<PiecePolygonItem*>(scene2d->selectedItems().constFirst());
+void MainWindow::tourne2D (qreal a, QGraphicsItem *it) {
+    PiecePolygonItem *bord = qgraphicsitem_cast<PiecePolygonItem*>(it);
     if (bord) {
         QPointF centre = bord->boundingRect().center();
         QTransform transform;
@@ -1032,6 +1057,7 @@ void MainWindow::tourne2D (qreal a) {
             }
         }
         bord->update();
+        pieceMAJCentre(&(dep.pieces[bord->nPiece]));
     }
 }
 
@@ -1046,12 +1072,12 @@ void MainWindow::ajuste3D () {
 
 void MainWindow::ajuste2D () {
     if (!scene2d->pageTemoin) {
-        scene2d->pageTemoin = new QGraphicsRectItem( 0, 0, 220* scene2d->nbPages, 297);
+        scene2d->pageTemoin = new QGraphicsRectItem( 0, 0, (dep.dimPage.x() + 10)* scene2d->nbPages, dep.dimPage.y());
         scene2d->pageTemoin->setPen(QPen(Qt::NoPen));
         scene2d->pageTemoin->setData(0, QVariant(1));
         scene2d->addItem(scene2d->pageTemoin);
     } else
-        scene2d->pageTemoin->setRect(0, 0, 220* scene2d->nbPages, 297);
+        scene2d->pageTemoin->setRect(0, 0, (dep.dimPage.x() + 10)* scene2d->nbPages, dep.dimPage.y());
     vue2d->fitInView(vue2d->scene()->itemsBoundingRect(), Qt::KeepAspectRatio);
 }
 
@@ -1128,6 +1154,7 @@ void MainWindow::couleurNouveau () {
         return;
 
     couleurChoisie(QColor(gCOL[tableCouleurs->rowCount()]));
+    tableNumerote();
     // QColorDialog *dialog = new QColorDialog();
     // dialog->setOption(QColorDialog::NoEyeDropperButton);
     // connect(dialog, &QColorDialog::colorSelected, this, [this](const QColor& color) {couleurChoisie(color);});
@@ -1366,7 +1393,8 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     connect(tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
     tableCouleurs->clearSelection();
     tableCouleurs->horizontalHeader()->hide();
-    tableCouleurs->verticalHeader()->hide();
+    //tableCouleurs->verticalHeader()->hide();
+    tableNumerote();
     tableCouleurs->setMaximumWidth(190);
     tableCouleurs->setFrameStyle(QFrame::Panel);
     tableCouleurs->setSelectionBehavior(QAbstractItemView::SelectRows);

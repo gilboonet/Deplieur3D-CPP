@@ -16,6 +16,12 @@ QPointF rotatePt(const QPointF& v, const QPointF& c, const qreal a) {
     return r;
 }
 
+
+qreal distance(const QPointF& v1, const QPointF& v2) {
+    QPointF d = v2 - v1;
+    return sqrt((d.x() * d.x()) +(d.y() * d.y()));
+}
+
 qreal calc_angle(QPointF a, QPointF b, QPointF c) {
     QPointF ab = b - a;
     QPointF ac = c - a;

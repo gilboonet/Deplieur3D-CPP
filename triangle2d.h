@@ -8,6 +8,7 @@
 const qreal epsilon = 1;
 
 QPointF rotatePt(const QPointF&, const QPointF&, const qreal);
+qreal distance(const QPointF&, const QPointF&);
 qreal calc_angle(QPointF, QPointF, QPointF);
 bool eq (qreal, qreal);
 bool eq (QPointF, QPointF);

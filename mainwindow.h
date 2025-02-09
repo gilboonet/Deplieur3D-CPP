@@ -46,7 +46,7 @@ private:
     QSplitter *splitter = nullptr;
     QStatusBar *statusbar = nullptr;
 
-    const QString nomApp = "Deplieur 3D v0.1 (07-02-25)";
+    const QString nomApp = "Deplieur 3D v0.1 (09-02-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
 
@@ -86,6 +86,7 @@ private slots:
     bool pieceEnleveFaces(int, int);
     void pieceCreeLignes (Piece*);
     void pieceMAJ (Piece *);
+    void pieceMAJCentre(Piece *);
     void piecesMAJ ();
     void face3dMAJ (Piece *, int);
     void tableNumerote ();
