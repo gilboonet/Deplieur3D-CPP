@@ -206,8 +206,64 @@ void MainWindow::changeFaceCouleur (int faceId, int couleurId) {
 bool MainWindow::pieceEnleveFaces(int faceId1, int faceId2) {
     if (pieceEnleveFace(faceId1))
         return true;
-    else
-        return pieceEnleveFace(faceId2);
+    else if (pieceEnleveFace(faceId2))
+        return true;
+    else {
+        pieceScission(faceId1, faceId2);
+        return false;
+    }
+}
+
+void MainWindow::pieceScission(int faceId1, int faceId2) {
+    int faceId = -1;
+
+    int pieceId = dep.faces[faceId1].col;
+    Piece *piece = &(dep.pieces[pieceId]);
+    Piece *pieceNouv = nullptr;
+
+    QList<Attache> nAttache2;
+    QList<int> nAttache;
+
+    qDebug() << "SCISSION" << faceId1 << faceId2 << "(" << pieceId << ")";
+
+    // ajoute couleur
+    couleurNouveau();
+    int pieceIdNouv = tableCouleurs->currentRow();
+
+    for (auto &&i :piece->elements2) {
+        //qDebug() << i.de << i.vers;
+        if (!pieceNouv){
+            if ((i.de == faceId1) && (i.vers == faceId2)) {
+                faceId = faceId2;
+                nAttache.append(faceId);
+                nAttache2.append(i);
+                pieceNouv = &(dep.pieces[pieceIdNouv]);
+            }
+            else if ((i.de == faceId2) && (i.vers == faceId1)) {
+                faceId = faceId1;
+                nAttache.append(faceId);
+                nAttache2.append(i);
+                pieceNouv = &(dep.pieces[pieceIdNouv]);
+            }
+        } else {
+            if (nAttache.contains(i.de)) {
+                nAttache.append(i.vers);
+                nAttache2.append(i);
+            }
+        }
+    }
+
+    for (auto it = nAttache2.rbegin(); it != nAttache2.rend(); it++) {
+        //qDebug() << it->de << it->vers;
+        pieceEnleveFace(it->vers);
+    }
+
+    qDebug() << "piece" << pieceIdNouv;
+
+    for (auto &&it : nAttache2) {
+        scene3d->dernFace = it.de;
+        pieceAjouteFace(pieceIdNouv, it.vers);
+    }
 }
 
 bool MainWindow::pieceEnleveFace (int faceId) {
@@ -453,19 +509,12 @@ void MainWindow::pieceAjouteFace (int pieceId, int faceId) {
                     QPolygonF t = dep.faces[ni].triangleItem->polygon();
                     QPolygonF ptest = tmpP.intersected(t);
                     if (ptest.size() > 2) {
-                        if (ptest.size() == 4) {
-                            QString t0, t1, t2, t3;
-                            t0 = QString("%1 %2").arg(ptest[0].x(), 0, 'f', 2).arg(ptest[0].y(), 0, 'f', 2);
-                            t1 = QString("%1 %2").arg(ptest[1].x(), 0, 'f', 2).arg(ptest[1].y(), 0, 'f', 2);
-                            t2 = QString("%1 %2").arg(ptest[2].x(), 0, 'f', 2).arg(ptest[2].y(), 0, 'f', 2);
-                            t3 = QString("%1 %2").arg(ptest[3].x(), 0, 'f', 2).arg(ptest[3].y(), 0, 'f', 2);
-                            ok = (t0 == t1) && (t0 == t2) && (t0 == t3);
-                        } else
-                            ok = false;
-
-                        if (!ok)
-                            qDebug() << "chevauchement" << ptest.size();
-
+                        QStringList sl;
+                        for (auto && pi : ptest) {
+                            sl.append(QString("%1 %2").arg(pi.x(), 0, 'f', 2).arg(pi.y(), 0, 'f', 2));
+                        }
+                        sl.removeDuplicates();
+                        ok = sl.size() < 3;
                         break;
                     }
                 }
@@ -935,9 +984,12 @@ void MainWindow::chargeProjet()
                     tmpY = parts[5].toFloat();
                     tmpLib = hexToStr(parts[6]);
 
-                    this->couleurNouveau();
+                    do {
+                        this->couleurNouveau();
+                    } while(tableCouleurs->rowCount() <= tmpId);
                     tableCouleurs->item(tmpId, 3)->setText(tmpLib);
                     qDebug() << tmpC1 << tmpC2 << tmpX << tmpY << tmpLib;
+                    statusbar->showMessage(QString("charge piece #%1").arg(tmpId));
                 }
 
                 else if (parts[0] == "d1") { // PREMIER ELEMENT (de PIECE)
