@@ -29,6 +29,7 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
 - Sauver un projet (format de fichier .obj.dep compatible avec .obj)
 - Edition de face dans la vue 2D (clic sur une arête pour enlever, ajouter ou déplacer une face)
 - Charger un projet (format de fichier .obj.dep)
+- Ligne témoin entre arêtes pour visualiser leur lien
 
 ## A FAIRE
 - Changer les paramètres de (mise en) page du projet(format, orientation, marges)
