@@ -1,10 +1,10 @@
 #  Deplieur3D-CPP
 Déplie un volume en sélectionnant des pièces par coloration des faces grâce à une UI en 3D
 
-C'est un projet QT C++, construit (CMAKE) avec QT Creator (14.0.2)
-(kit Desktop MingGW Qt 6.8.0 ou Desktop MSVC Qt 6.8.0, ou  WebAssembly Qt 6.8.0)
+C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
+(kit Desktop Qt 6.8.2 ou WebAssembly Qt 6.8.2)
 
-# (07-02-25)
+# (14-02-25)
 ## FAIT
 - Crer un nouveau projet de dépliage (ouvrir un fichier 3D, format .obj)
 - Afficher le modèle 3D, le gabarit 2D multipage par défaut
