@@ -23,7 +23,7 @@ PieceLigneItem::PieceLigneItem (DepliageScene *scene, PiecePolygonItem *parent, 
     setAcceptHoverEvents(true);
     setData(0, QVariant(ligne->id1));
     setData(1, QVariant(ligne->id2));
-    setCursor(QCursor(Qt::OpenHandCursor));
+    setCursor(QCursor(Qt::SplitVCursor));
     moveBy(-parentItem()->x(),  - parentItem()->y());
 
     PieceLangItem *pli = new PieceLangItem(ligne);
@@ -61,6 +61,7 @@ void PieceLigneItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     QPen p = this->pen();
     p.setColor(Qt::yellow);
+    emit sceneD->ligneHoverOn(this->ligne->id1, this->ligne->id2);
     setPen(p);
 }
 

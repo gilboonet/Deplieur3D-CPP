@@ -21,8 +21,10 @@ public:
     int margeId; // 0 : sans - 1 : Cricut - 2 : Brother - 3 : Silhouette
     int typeLang; // 0, 1 ou 2
     QGraphicsRectItem *pageTemoin = nullptr;
+    QGraphicsLineItem *ligneTemoin = nullptr;
     int faceCourante = -1;
     int dernFace = -1;
+    QPoint dim = QPoint(210, 297);
 
 signals:
     void changeCouleur (int);
@@ -33,6 +35,7 @@ signals:
     void pieceEnleveFaces (int, int);
     void basculeLanguette(int, int);
     void hoverOn(int);
+    void ligneHoverOn(int, int);
     void hoverOff(int);
 
 protected:

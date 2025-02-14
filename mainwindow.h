@@ -89,6 +89,7 @@ private slots:
     void pieceMAJCentre(Piece *);
     void piecesMAJ ();
     void pieceScission(int, int);
+    void ligneHoverOn(int, int);
     void face3dMAJ (Piece *, int);
     void tableNumerote ();
 

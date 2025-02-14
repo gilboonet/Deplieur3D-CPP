@@ -95,6 +95,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     case Qt::Key_U :
         tourneModele(0, 0, -dep.fPas);
         return;
+
+    case Qt::Key_Plus :
+         vue2d->scale(1.1f, 1.1f);
+        return;
+
+    case Qt::Key_Minus :
+        vue2d->scale(0.9f, 0.9f);
+        return;
+
+    case Qt::Key_Slash :
+        tourne2D(-2, vue2d->git);
+        return;
+
+    case Qt::Key_Asterisk :
+        tourne2D(2, vue2d->git);
+        return;
     }
 
     QMainWindow::keyPressEvent (event);
@@ -264,6 +280,55 @@ void MainWindow::pieceScission(int faceId1, int faceId2) {
         scene3d->dernFace = it.de;
         pieceAjouteFace(pieceIdNouv, it.vers);
     }
+
+    piecesMAJ();
+}
+
+void MainWindow::ligneHoverOn(int ligne1, int ligne2) {
+
+    bool ok = false, ok1 = false, ok2 = false;
+    Ligne *li1 = nullptr;
+    Ligne *li2 = nullptr;
+    QPointF delta1 = QPointF();
+    QPointF delta2 = QPointF();
+    QPointF p1 = QPointF();
+    QPointF p2 = QPointF();
+
+    for (auto && el : scene2d->items()) {
+        PieceLigneItem *pl = qgraphicsitem_cast<PieceLigneItem*>(el);
+        if (pl) {
+            if ((pl->ligne->id1 == ligne1) && (pl->ligne->id2 == ligne2)) {
+                p1 = pl->line().center();
+                if (pl->parentItem())
+                    p1 += pl->parentItem()->pos();
+                ok1 = true;
+            } else if ((pl->ligne->id1 == ligne2) && (pl->ligne->id2 == ligne1)) {
+                p2 = pl->line().center();
+                if (pl->parentItem())
+                    p2 += pl->parentItem()->pos();
+                ok2 = true;
+            }
+
+            if (ok1 && ok2) {
+                ok = true;
+                break;
+            }
+        }
+    }
+
+    if (ok) {
+        if (!scene2d->ligneTemoin) {
+            scene2d->ligneTemoin = new QGraphicsLineItem();
+            scene2d->addItem(scene2d->ligneTemoin);
+            scene2d->ligneTemoin->setPen(QPen(QColor::fromRgb(255,102,0), 2, Qt::DashLine));
+            scene2d->ligneTemoin->setZValue(100);
+        }
+        scene2d->ligneTemoin->setLine(QLineF(p1, p2));
+        scene2d->ligneTemoin->setVisible(true);
+    } else {
+        if (scene2d->ligneTemoin)
+            scene2d->ligneTemoin->setVisible(false);
+    }
 }
 
 bool MainWindow::pieceEnleveFace (int faceId) {
@@ -280,10 +345,6 @@ bool MainWindow::pieceEnleveFace (int faceId) {
 
 
     bool ok = false;
-    // if (piece->elements2.constFirst().vers == faceId) {
-    //     ok = true;
-    // }
-    //else
     if (piece->elements2.constLast().vers == faceId) {
         ok = true;
     }
@@ -305,8 +366,6 @@ bool MainWindow::pieceEnleveFace (int faceId) {
     }
 
     if (piece->elements.removeOne(faceId)) {
-        //Attache att(faceId);
-        //piece->elements2.removeOne(att);
         for (auto &&el : piece->elements2) {
             if (el.vers == faceId) {
                 piece->elements2.removeOne(el);
@@ -711,7 +770,7 @@ void MainWindow::exporte () {
         chCoupe->set_attr("id", QString("coupes%1").arg(snum).toStdString());
         chCoupe->set_attr("stroke", "red");
         chCoupe->set_attr("stroke-width", "1");
-        chCoupe->set_attr("fill", "beige");
+        chCoupe->set_attr("style", "fill:#f2f2f2");
 
         chPliM = gPage->add_child<SVG::Path>();
         LPlisM.append(chPliM);
@@ -1066,6 +1125,9 @@ void MainWindow::tourneModele (qreal dZ, qreal dX, qreal dY) {
 }
 
 void MainWindow::tourne2D (qreal a, QGraphicsItem *it) {
+    if (!it)
+        return;
+
     PiecePolygonItem *bord = qgraphicsitem_cast<PiecePolygonItem*>(it);
     if (bord) {
         QPointF centre = bord->boundingRect().center();
@@ -1309,6 +1371,7 @@ void MainWindow::chargeFichier() {
     connect(scene2d, &DepliageScene::peutColorierFace, this, &MainWindow::peutColorierFace);
     connect(scene2d, &DepliageScene::pieceEnleveFace, this, &MainWindow::pieceEnleveFace);
     connect(scene2d, &DepliageScene::pieceEnleveFaces, this, &MainWindow::pieceEnleveFaces);
+    connect(scene2d, &DepliageScene::ligneHoverOn, this, &MainWindow::ligneHoverOn);
 
     scene2d->nbPages = 1;
     dep.creeFaces2d(scene2d);
