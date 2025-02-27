@@ -13,7 +13,7 @@ void DepliageScene::drawBackground (QPainter *painter, const QRectF &rect) {
     if (!doBackground)
         return;
 
-    QRect page(0, 0, 210, 297);
+    QRect page(0, 0, dim.x(), dim.y());
 
     QPolygonF pMarge;
     QPointF delta;
@@ -59,10 +59,10 @@ void DepliageScene::drawBackground (QPainter *painter, const QRectF &rect) {
 
     for (int i = 0; i < this->nbPages; i++) {
         painter->setPen(QPen(QBrush(Qt::blue), 2));
-        painter->drawRect(page.translated(i*220, 0));
+        painter->drawRect(page.translated(i* (dim.x() + 10), 0));
         if (margeId > 0) {
             painter->setPen(QPen(QBrush(Qt::red), 2));
-            painter->drawPolygon(pMarge.translated(delta.x() + 220*i, delta.y()));
+            painter->drawPolygon(pMarge.translated(delta.x() + (dim.x()+10)*i, delta.y()));
         }
     }
 }

@@ -21,6 +21,7 @@ public:
     int prochainNum = 0;
     QList<Nums> nums;
     qreal echelle = 1;
+    qreal echelleT = 1;
     float fPas = 0.05f;
     float fThetaX;
     float fThetaY;

@@ -18,7 +18,7 @@ TriangleItem2d::TriangleItem2d(DepliageScene *scene, QColor pieceCouleur, QPolyg
     this->col = col;
     setPolygon(poly);
     this->setVisible(false);
-    this->setZValue(5);
+    this->setZValue(1);
     scene->addItem(this);
 }
 

@@ -66,6 +66,10 @@ vec3d vec3d::Vector_IntersectPlane (vec3d& plane_n, vec3d& lineStart, vec3d& lin
 }
 
 QPointF vec3d::toPointF () {
+    return QPointF(this->x, this->y);
+}
+
+QPoint vec3d::toPoint () {
     return QPoint(this->x, this->y);
 }
 

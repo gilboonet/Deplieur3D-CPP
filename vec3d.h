@@ -30,6 +30,7 @@ public:
     vec3d Vector_CrossProduct (vec3d&);
     vec3d Vector_IntersectPlane (vec3d&, vec3d&, vec3d&);
     QPointF toPointF ();
+    QPoint toPoint ();
     QVector3D toVector3D ();
 
     friend QDebug operator<< (QDebug d, const vec3d& v);

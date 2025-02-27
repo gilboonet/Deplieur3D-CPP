@@ -22,14 +22,14 @@ public:
     int id;
     int col;
     DepliageScene *sceneD;
-    bool hoverOn = false;
+    bool hoverOn;
 
     void paint (QPainter *, const QStyleOptionGraphicsItem *, QWidget *) override;
     void mousePressEvent (QGraphicsSceneMouseEvent *) override;
     void hoverEnterEvent (QGraphicsSceneHoverEvent *event) override;
     void hoverLeaveEvent (QGraphicsSceneHoverEvent *event) override;
 
-    void editeTriangle();
+    void editeTriangle ();
 };
 
 #endif // TriangleItem3D_H

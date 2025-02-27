@@ -11,7 +11,7 @@ PieceLigneItem::PieceLigneItem (DepliageScene *scene, PiecePolygonItem *parent, 
     QPen pliMontagne (QBrush(Qt::SolidPattern), EP, Qt::DashLine);
     QPen pliVallee   (QBrush(Qt::SolidPattern), EP, Qt::DashDotDotLine);
     //QPen pliAucun    (QBrush(Qt::NoBrush), 1, Qt::NoPen);
-    QPen pliAucun    (QBrush(Qt::SolidPattern), EP/2, Qt::SolidLine);
+    //QPen pliAucun    (QBrush(Qt::SolidPattern), EP/2, Qt::SolidLine);
     QPen pliBord     (QBrush(Qt::SolidPattern), EP, Qt::SolidLine);
 
     setParentItem(parent);
@@ -30,17 +30,19 @@ PieceLigneItem::PieceLigneItem (DepliageScene *scene, PiecePolygonItem *parent, 
     pli->setParentItem(this);
 
     if (ligne->nb == 2)
-        setPen((ligne->cop < 0) ? pliVallee
-            :  (ligne->cop > 0) ? pliMontagne
-                                : pliAucun   );
+        // setPen((ligne->cop < 0) ? pliVallee
+        //     :  (ligne->cop > 0) ? pliMontagne
+        //                         : pliAucun   );
+    setPen((ligne->cop < 0) ? pliVallee :  pliMontagne);
     else {
         if (ligne->bLang)
-            setPen((ligne->cop < 0) ? pliVallee
-                   :  (ligne->cop > 0) ? pliMontagne
-                                      : pliAucun   );
+            // setPen((ligne->cop < 0) ? pliVallee
+            //        :  (ligne->cop > 0) ? pliMontagne
+            //                           : pliAucun   );
+        setPen((ligne->cop < 0) ? pliVallee : pliMontagne);
         else
             setPen(pliBord);
-        PieceNumItem *gti = new PieceNumItem(this, ligne, num);
+        PieceNumItem *gti = new PieceNumItem(this, ligne, num, true);
         gti->setParentItem(this);
     }
     setZValue(2);

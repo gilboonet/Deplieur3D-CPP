@@ -13,8 +13,7 @@
 #include <QByteArray>
 #include <QColor>
 //---------------------------------------------------------
-class Ligne
-{
+class Ligne {
 public:
     QPointF p1;
     QPointF p2;
@@ -29,8 +28,7 @@ public:
     bool operator== (const Ligne&) const;
 };
 //---------------------------------------------------------
-class Voisin
-{
+class Voisin {
 public:
     int id;
     int pnF;
@@ -42,8 +40,7 @@ public:
     Voisin (int, int, int, int, int);
 };
 //---------------------------------------------------------
-class Facette
-{
+class Facette {
 public:
     int id;                 // Id
     int col;                // Couleur
@@ -57,14 +54,25 @@ public:
     Facette ();
     Facette (vec3d, vec3d, vec3d, int, int, int);
 
-    int ClipAgainstPlane (vec3d, vec3d, Facette&, Facette&, Facette&);
+    //int ClipAgainstPlane (vec3d, vec3d, Facette&, Facette&, Facette&);
     Triangle2d d2ize ();
     vec3d point (const int);
 
     qreal isCoplanar (vec3d);
     qreal isCoplanar (QVector3D);
-    QPolygonF toPolygon ();
+    QPolygonF toPolygonF ();
     bool eq3 (Facette, int);
+};
+
+struct FacetteSimple {
+    int id;
+    int col;
+
+    vec3d a;
+    vec3d b;
+    vec3d c;
+    int ClipAgainstPlane (vec3d, vec3d,
+                          FacetteSimple&, FacetteSimple&, FacetteSimple&);
 };
 //---------------------------------------------------------
 struct Attache {
@@ -84,7 +92,9 @@ struct Piece {
     QList<int> elements;
     QList<Attache> elements2;
     PiecePolygonItem *bord = nullptr;
+    QGraphicsSimpleTextItem *num = nullptr;
     QList<Ligne> lignes;
+    int hId = -1;
 
     void pieceConstruitBord ();
 };

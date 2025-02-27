@@ -22,6 +22,8 @@ public:
     int typeLang; // 0, 1 ou 2
     QGraphicsRectItem *pageTemoin = nullptr;
     QGraphicsLineItem *ligneTemoin = nullptr;
+    QGraphicsPolygonItem *triangleHover = nullptr;
+    bool gereHover = false;
     int faceCourante = -1;
     int dernFace = -1;
     QPoint dim = QPoint(210, 297);
@@ -30,13 +32,20 @@ signals:
     void changeCouleur (int);
     void changeNBCouleur (int, int);
     void changeFaceCouleur (int, int);
+
     void peutColorierFace (int, int = -1);
+
     void pieceEnleveFace (int);
     void pieceEnleveFaces (int, int);
-    void basculeLanguette(int, int);
-    void hoverOn(int);
-    void ligneHoverOn(int, int);
-    void hoverOff(int);
+    void pieceHoverOn (int);
+    void pieceHoverOff (int);
+
+    void basculeLanguette (int, int);
+
+    void ligneHoverOn (int, int);
+
+    void facetteHoverOn (int);
+    void facetteHoverOff (int);
 
 protected:
     void drawBackground (QPainter *, const QRectF &) override;

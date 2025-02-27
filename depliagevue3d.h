@@ -12,9 +12,10 @@ class DepliageVue3d : public QGraphicsView
 public:
     DepliageVue3d ();
     DepliageVue3d (QWidget*);
+    bool enMouvement;
 
 signals:
-    void tourneModele (qreal, qreal, qreal);
+    void tourne3D (qreal, qreal, qreal);
 
 private:
     void mouseMoveEvent (QMouseEvent *event) override;

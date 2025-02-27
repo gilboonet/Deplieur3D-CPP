@@ -1,8 +1,6 @@
 // QGraphicsPolygonItem pour item Triangle de la vue 3D
 //---------------------------------------------------------
 #include "triangleitem3d.h"
-
-//#include <QPen>
 //---------------------------------------------------------
 TriangleItem3d::TriangleItem3d () {
     pieceCouleur = QColor();
@@ -17,6 +15,7 @@ TriangleItem3d::TriangleItem3d (DepliageScene *scene, QColor pieceCouleur, QPoly
     this->id = id;
     setData(0, QVariant(id));
     this->col = col;
+    this->hoverOn = false;
     setPolygon(poly);
     setFlag(ItemIsSelectable);
     setCursor(Qt::PointingHandCursor);
@@ -59,18 +58,31 @@ void TriangleItem3d::mousePressEvent (QGraphicsSceneMouseEvent *event) {
 }
 
 void TriangleItem3d::hoverEnterEvent(QGraphicsSceneHoverEvent *event) {
-    this->hoverOn = true;
-    if (sceneD->faceCourante != this->id) {
-        sceneD->dernFace = sceneD->faceCourante;
-        sceneD->faceCourante = this->id;
+    if (sceneD->gereHover) {
+        this->hoverOn = true;
+        if (sceneD->faceCourante != this->id) {
+            sceneD->dernFace = sceneD->faceCourante;
+            sceneD->faceCourante = this->id;
+        }
+        if (sceneD->triangleHover) {
+            TriangleItem3d *t = qgraphicsitem_cast<TriangleItem3d*>(sceneD->triangleHover);
+            if (t) {
+                t->hoverOn = false;
+                t->update();
+            }
+        }
+        sceneD->triangleHover = this;
+        if (this->col > 0)
+            emit sceneD->facetteHoverOn(this->id);
+        update();
     }
-    if (this->col > 0)
-        emit sceneD->hoverOn(this->id);
-    update();
 }
 
 void TriangleItem3d::hoverLeaveEvent(QGraphicsSceneHoverEvent *event) {
-    this->hoverOn = false;
-    emit sceneD->hoverOff(this->id);
-    update();
+    if (sceneD->gereHover) {
+        this->hoverOn = false;
+        update();
+        sceneD->triangleHover = nullptr;
+        emit sceneD->facetteHoverOff(this->id);
+    }
 }

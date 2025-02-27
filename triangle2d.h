@@ -10,6 +10,7 @@ const qreal epsilon = 1;
 QPointF rotatePt(const QPointF&, const QPointF&, const qreal);
 qreal distance(const QPointF&, const QPointF&);
 qreal calc_angle(QPointF, QPointF, QPointF);
+bool eq0 (qreal, qreal);
 bool eq (qreal, qreal);
 bool eq (QPointF, QPointF);
 bool li(QPointF, QPointF, QPointF, QPointF);
@@ -27,6 +28,7 @@ public:
     Triangle2d operator -(const QPointF&);
     Triangle2d &operator -=(const QPointF&);
     Triangle2d operator *(const qreal&);
+    Triangle2d &operator *=(const qreal&);
     Triangle2d operator /(const qreal&);
 
     QList<QPointF> toPolygon();

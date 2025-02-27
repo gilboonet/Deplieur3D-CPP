@@ -22,6 +22,8 @@ Depliage::Depliage () {
 
 void Depliage::dessineModele (DepliageScene *scene3d) {
     if (!faces.empty()) {
+        scene3d->gereHover = false;
+        scene3d->triangleHover = nullptr;
         scene3d->clear();
 
         // Set up rotation matrices
@@ -62,26 +64,25 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
         matView = matView.Matrix_QuickInverse(matCamera);
 
         // Store triagles for rastering later
-        QList<Facette> vecTrianglesToRaster;
+        QList<FacetteSimple> vecTrianglesToRaster;
 
         // Draw Triangles
         for (auto &tri : faces) {
-            Facette triProjected, triTransformed, triViewed;
+            FacetteSimple triProjected, triTransformed, triViewed;
 
             // World Matrix Transform
-            triTransformed = tri;
-            triTransformed.p[0] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[0]);
-            triTransformed.p[1] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[1]);
-            triTransformed.p[2] = matWorld.Matrix_MultiplyVector(matWorld, tri.p[2]);
-            //triTransformed.col = tri.col;
-            //triTransformed.id = tri.id;
+            triTransformed.id = tri.id;
+            triTransformed.col = tri.col;
+            triTransformed.a = matWorld.Matrix_MultiplyVector(matWorld, tri.p[0]);
+            triTransformed.b = matWorld.Matrix_MultiplyVector(matWorld, tri.p[1]);
+            triTransformed.c = matWorld.Matrix_MultiplyVector(matWorld, tri.p[2]);
 
             // Calculate triangle Normal
             vec3d normal, line1, line2;
 
             // Get lines either side of triangle
-            line1 = triTransformed.p[1].Vector_Sub(triTransformed.p[0]);
-            line2 = triTransformed.p[2].Vector_Sub(triTransformed.p[0]);
+            line1 = triTransformed.b.Vector_Sub(triTransformed.a);
+            line2 = triTransformed.c.Vector_Sub(triTransformed.a);
 
             // Take cross product of lines to get normal to triangle surface
             normal = line1.Vector_CrossProduct(line2);
@@ -90,7 +91,7 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
             normal = normal.Vector_Normalise();
 
             // Get Ray from triangle to camera
-            vec3d vCameraRay = triTransformed.p[0].Vector_Sub(vCamera);
+            vec3d vCameraRay = triTransformed.a.Vector_Sub(vCamera);
             // If ray is aligned with normal, then triangle is visible
             if (normal.Vector_DotProduct(vCameraRay) < 0.0f) {
                 // Illumination
@@ -102,16 +103,14 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
 
                 // Convert World Space --> View Space
                 triViewed = triTransformed;
-                triViewed.p[0] = matView.Matrix_MultiplyVector(matView, triTransformed.p[0]);
-                triViewed.p[1] = matView.Matrix_MultiplyVector(matView, triTransformed.p[1]);
-                triViewed.p[2] = matView.Matrix_MultiplyVector(matView, triTransformed.p[2]);
-                //triViewed.col = triTransformed.col;
-                //triViewed.id = triTransformed.id;
+                triViewed.a = matView.Matrix_MultiplyVector(matView, triTransformed.a);
+                triViewed.b = matView.Matrix_MultiplyVector(matView, triTransformed.b);
+                triViewed.c = matView.Matrix_MultiplyVector(matView, triTransformed.c);
 
                 // Clip Viewed Triangle against near plane, this could form two additional
                 // additional triangles.
                 int nClippedTriangles = 0;
-                Facette clipped[2];
+                FacetteSimple clipped[2];
                 nClippedTriangles = clipped[0].ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f },
                                                                 triViewed, clipped[0], clipped[1]);
 
@@ -120,38 +119,38 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
                 for (int n = 0; n < nClippedTriangles; n++) {
                     // Project triangles from 3D --> 2D
                     triProjected = triViewed;
-                    triProjected.p[0] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[0]);
-                    triProjected.p[1] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[1]);
-                    triProjected.p[2] = matProj.Matrix_MultiplyVector(matProj, clipped[n].p[2]);
-                    //triProjected.col = clipped[n].col;
-                    //triProjected.id = clipped[n].id;
+                    triProjected.a = matProj.Matrix_MultiplyVector(matProj, clipped[n].a);
+                    triProjected.b = matProj.Matrix_MultiplyVector(matProj, clipped[n].b);
+                    triProjected.c = matProj.Matrix_MultiplyVector(matProj, clipped[n].c);
 
                     // Scale into view, we moved the normalising into cartesian space
                     // out of the matrix.vector function from the previous videos, so
                     // do this manually
-                    triProjected.p[0] = triProjected.p[0].Vector_Div(triProjected.p[0].w);
-                    triProjected.p[1] = triProjected.p[1].Vector_Div(triProjected.p[1].w);
-                    triProjected.p[2] = triProjected.p[2].Vector_Div(triProjected.p[2].w);
+                    triProjected.a = triProjected.a.Vector_Div(triProjected.a.w);
+                    triProjected.b = triProjected.b.Vector_Div(triProjected.b.w);
+                    triProjected.c = triProjected.c.Vector_Div(triProjected.c.w);
 
                     // X/Y are inverted so put them back
-                    triProjected.p[0].x *= -1.0f;
-                    triProjected.p[1].x *= -1.0f;
-                    triProjected.p[2].x *= -1.0f;
-                    triProjected.p[0].y *= -1.0f;
-                    triProjected.p[1].y *= -1.0f;
-                    triProjected.p[2].y *= -1.0f;
+                    triProjected.a.x *= -1.0f;
+                    triProjected.b.x *= -1.0f;
+                    triProjected.c.x *= -1.0f;
+                    triProjected.a.y *= -1.0f;
+                    triProjected.b.y *= -1.0f;
+                    triProjected.c.y *= -1.0f;
 
                     // Offset verts into visible normalised space
                     vec3d vOffsetView = { 1,1,0 };
-                    triProjected.p[0] = triProjected.p[0].Vector_Add(vOffsetView);
-                    triProjected.p[1] = triProjected.p[1].Vector_Add(vOffsetView);
-                    triProjected.p[2] = triProjected.p[2].Vector_Add(vOffsetView);
-                    triProjected.p[0].x *= 1000.0f;
-                    triProjected.p[0].y *= 1000.0f;
-                    triProjected.p[1].x *= 1000.0f;
-                    triProjected.p[1].y *= 1000.0f;
-                    triProjected.p[2].x *= 1000.0f;
-                    triProjected.p[2].y *= 1000.0f;
+                    triProjected.a = triProjected.a.Vector_Add(vOffsetView);
+                    triProjected.a.x *= 1000.0f;
+                    triProjected.a.y *= 1000.0f;
+
+                    triProjected.b = triProjected.b.Vector_Add(vOffsetView);
+                    triProjected.b.x *= 1000.0f;
+                    triProjected.b.y *= 1000.0f;
+
+                    triProjected.c = triProjected.c.Vector_Add(vOffsetView);
+                    triProjected.c.x *= 1000.0f;
+                    triProjected.c.y *= 1000.0f;
 
                     // Store triangle for sorting
                     vecTrianglesToRaster.push_back(triProjected);
@@ -160,10 +159,10 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
         }
 
         // Sort triangles from back to front
-        std::sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Facette& t1, Facette& t2)
+        std::sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](FacetteSimple& t1, FacetteSimple& t2)
         {
-            float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
-            float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+            float z1 = (t1.a.z + t1.b.z + t1.c.z) / 3.0f;
+            float z2 = (t2.a.z + t2.b.z + t2.c.z) / 3.0f;
             return z1 > z2;
         });
 
@@ -172,8 +171,8 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
             // Clip triangles against all four screen edges, this could yield
             // a bunch of triangles, so create a queue that we traverse to
             //  ensure we only test new triangles generated against planes
-            Facette clipped[2];
-            std::list<Facette> listTriangles;
+            FacetteSimple clipped[2];
+            std::list<FacetteSimple> listTriangles;
 
             // Add initial triangle
             listTriangles.push_back(triToRaster);
@@ -184,7 +183,7 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
                 while (nNewTriangles > 0)
                 {
                     // Take triangle from front of queue
-                    Facette test = listTriangles.front();
+                    FacetteSimple test = listTriangles.front();
                     listTriangles.pop_front();
                     nNewTriangles--;
 
@@ -215,11 +214,13 @@ void Depliage::dessineModele (DepliageScene *scene3d) {
             // Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
             for (auto& t : listTriangles) {
                 TriangleItem3d *ti = new TriangleItem3d(scene3d, pieces[t.col].couleur,
-                                                        t.toPolygon(), t.id, t.col);
+                                                        {t.a.toPointF(), t.b.toPointF(), t.c.toPointF()},
+                                                        t.id, t.col);
                 ti->setVisible(true);
             }
             scene3d->update();
         }
+        scene3d->gereHover = true;        
     }
 }
 
@@ -232,7 +233,8 @@ void Depliage::creeFaces2d (DepliageScene *scene2d) {
     scene2d->clear();
     scene2d->pageTemoin = nullptr;
     for (auto&& face : faces) {
-        QPolygonF poly = transform.map(face.triangle2d.toPolygon());
+        QPolygonF poly;
+        poly = transform.map(face.triangle2d.toPolygon());
         poly.translate(-poly.boundingRect().left(), -poly.boundingRect().top());
         delete face.triangleItem;
         face.triangleItem = new TriangleItem2d(scene2d, pieces[face.col].couleur , poly, face.id, face.col);
@@ -301,7 +303,7 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
 
         }
 
-        else if (parts[0] == "d1") {
+        else if (parts[0] == "d0") {
             dp.append(line);
 
         }
@@ -340,7 +342,7 @@ bool Depliage::chargeFichierOBJ (const QByteArray &fdata, bool estProjet) {
     qreal mx = std::max({dim.x, dim.y, dim.z});
     qDebug() << "max : " << mx;
     //if ((mx < 4) || (mx > 10)) {
-    if ((mx > 10)) {
+    if ((mx > 6)) {
         qreal delta = 4 / mx;
         for (auto && v : faces) {
                 for (auto && vp : v.p)

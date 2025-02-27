@@ -34,6 +34,10 @@ QList<QPointF> Triangle2d::toPolygon() {
     return {a, b, c};
 }
 
+bool eq0 (qreal a, qreal b) {
+    return qFabs(a - b) < 0.00001f;
+}
+
 bool eq (qreal a, qreal b) {
     return qFabs(a - b) < epsilon;
 }
@@ -95,6 +99,11 @@ Triangle2d& Triangle2d::operator -=(const QPointF& v) {
 
 Triangle2d Triangle2d::operator *(const qreal &v) {
     return Triangle2d(QPointF(a * v), QPointF(b * v), QPointF(c * v));
+}
+
+Triangle2d& Triangle2d::operator *=(const qreal &v) {
+    *this = Triangle2d(QPointF(a * v), QPointF(b * v), QPointF(c * v));
+    return *this;
 }
 
 Triangle2d Triangle2d::operator /(const qreal &v) {

@@ -46,23 +46,26 @@ private:
     QSplitter *splitter = nullptr;
     QStatusBar *statusbar = nullptr;
 
-    const QString nomApp = "Deplieur 3D v0.1 (14-02-25)";
+    const QString nomApp = "Deplieur 3D v0.1 (27-02-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
+    void triangle3dSetHover(bool);
 
 private slots:
     void resizeEvent (QResizeEvent*) override;
     void keyPressEvent(QKeyEvent *event) override;
 
-    void nouveau ();
     void demo ();
     void doDemo ();
     void chargeFichier ();
     void lanceDemo (int);
-    void exporte ();
-    void sauveProjet ();
-    void chargeProjet ();
 
+    void projetNouveau ();
+    void projetSauve ();
+    void projetCharge ();
+    void projetExporte ();
+
+    void basculeVue (int);
     void basculeCouleurs ();
     void bascule3d ();
     void bascule2d ();
@@ -73,15 +76,16 @@ private slots:
     void ajuste3D ();
     void ajuste2D ();
 
-    void ajoutePage ();
-    void supprimePage ();
+    void pageAjoute ();
+    void pageSupprime ();
 
     void couleurClic (int, int);
     void changeCouleur (int);
     void changeNBCouleur (int, int = 0);
     void changeFaceCouleur (int, int);
     void peutColorierFace (int, int = -1);
-    void pieceAjouteFace(int, int);
+
+    void pieceAjouteFace(int, int, bool = false);
     bool pieceEnleveFace (int);
     bool pieceEnleveFaces(int, int);
     void pieceCreeLignes (Piece*);
@@ -89,11 +93,14 @@ private slots:
     void pieceMAJCentre(Piece *);
     void piecesMAJ ();
     void pieceScission(int, int);
+    void pieceHoverOn (int);
+    void pieceHoverOff (int);
+
     void ligneHoverOn(int, int);
     void face3dMAJ (Piece *, int);
     void tableNumerote ();
 
-    void tourneModele (qreal, qreal, qreal);
+    void tourne3D (qreal, qreal, qreal);
     void tourne2D (qreal, QGraphicsItem *);
 
     void changeEchelle();
@@ -102,7 +109,7 @@ private slots:
     void changeTypeLang (int);
     void basculeLanguette(int, int);
 
-    void hoverOn(int);
-    void hoverOff(int);
+    void facetteHoverOn (int);
+    void facetteHoverOff (int);
 };
 #endif // MAINWINDOW_H

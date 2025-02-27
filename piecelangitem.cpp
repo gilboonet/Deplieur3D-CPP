@@ -7,7 +7,7 @@ PieceLangItem::PieceLangItem () {}
 PieceLangItem::PieceLangItem (Ligne *ligne) {
     this->ligne = ligne;
     setPath(lineToLang(ligne->p1, ligne->p2));
-    setZValue(1);
+    setZValue(5);
 }
 
 void PieceLangItem::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) {

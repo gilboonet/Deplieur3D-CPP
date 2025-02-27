@@ -27,10 +27,11 @@ void DepliageVue2d::mousePressEvent (QMouseEvent *event) {
         setCursor(Qt::ClosedHandCursor);
         event->accept();
         it = itemAt(event->position().x(), event->position().y());
-        while(it->parentItem()) {
-            it = it->parentItem();
+        if (it) {
+            while(it->parentItem()) {
+                it = it->parentItem();
+            }
         }
-
         return;
     }
     QGraphicsView::mousePressEvent (event);
