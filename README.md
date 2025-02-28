@@ -4,7 +4,10 @@ Déplie un volume en sélectionnant des pièces par coloration des faces grâce 
 C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
 (kit Desktop Qt 6.8.2 ou WebAssembly Qt 6.8.2)
 
-# (14-02-25)
+v0.1 : version expérimentale, avec modèles de démo intégrés dans la version Navigateur
+v0.2 : version complète, sans démo
+
+# (28-02-25) passage en v0.2
 ## FAIT
 - Crer un nouveau projet de dépliage (ouvrir un fichier 3D, format .obj)
 - Afficher le modèle 3D, le gabarit 2D multipage par défaut
