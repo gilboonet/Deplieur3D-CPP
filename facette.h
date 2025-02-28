@@ -54,7 +54,6 @@ public:
     Facette ();
     Facette (vec3d, vec3d, vec3d, int, int, int);
 
-    //int ClipAgainstPlane (vec3d, vec3d, Facette&, Facette&, Facette&);
     Triangle2d d2ize ();
     vec3d point (const int);
 

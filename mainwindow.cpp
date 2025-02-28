@@ -13,10 +13,10 @@
 #include <QVBoxLayout>
 #include <QToolBar>
 #include <QToolButton>
-#include <QMenu>
+//#include <QMenu>
 #include <QHeaderView>
 #include <QTableWidgetItem>
-#include <QColorDialog>
+//#include <QColorDialog>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QLocale>
@@ -68,6 +68,243 @@ void MoveAndLine(SVG::Path * ch, QPointF p1, QPointF p2) {
     ch->line_to(p2.x(), p2.y());
 }
 //---------------------------------------------------------
+// CONSTRUCTEUR
+MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
+    // DEFINIT L'INTERFACE
+
+    QString tmpCol = "white, Brown, Cyan, Crimson, Chartreuse, Green, BurlyWood, Yellow, Peru, CadetBlue, Chocolate, Fuchsia, Gold, Coral, Aquamarine, Tomato, BlueViolet, CornflowerBlue, Maroon, MediumAquaMarine, MediumBlue, MediumOrchid, MediumPurple, MediumSeaGreen, MediumSlateBlue, MediumSpringGreen, Lavender, MediumTurquoise, MediumVioletRed, MidnightBlue, MintCream, MistyRose, DarkCyan, DarkGoldenRod, DarkGray, DarkKhaki, DarkMagenta, DarkOliveGreen, DarkOrange, DarkOrchid, DarkSalmon, DarkSeaGreen, DarkTurquoise, DarkViolet, DeepPink, DeepSkyBlue, DimGray, DodgerBlue, Turquoise, Violet, FireBrick, ForestGreen, GoldenRod, IndianRed, Indigo, GreenYellow, HoneyDew, HotPink, Khaki, YellowGreen, LavenderBlush, LawnGreen, LemonChiffon, LightBlue, LightCoral, LightCyan, LightGoldenRodYellow, LightGray, Olive, LightGreen, LightPink, LightSalmon, LightSeaGreen, LightSkyBlue, LightSlateGray, LightSteelBlue, LightYellow, Lime, LimeGreen, Linen, Moccasin, NavajoWhite, Navy, OldLace, Olive, Yellow, OliveDrab, Orange, OrangeRed, Orchid, PaleGoldenRod, Wheat, PaleTurquoise, PaleVioletRed, PapayaWhip, PeachPuff, WhiteSmoke, Pink, Plum, PowderBlue, Purple, RosyBrown, RoyalBlue, SaddleBrown, Salmon, SandyBrown, SeaGreen, SeaShell, Sienna, Silver, SkyBlue, SlateBlue, SlateGray, Snow, SpringGreen, SteelBlue, Tan, Teal, Thistle";
+    gCOL.append(tmpCol.split(','));
+    tmpCol.clear();
+
+    statusbar = statusBar();
+    statusbar->showMessage(nomApp);
+    setWindowTitle(nomApp);
+    setWindowFlag(Qt::Window);
+
+    dep.ModeleOK = false;
+
+    QFont font = QFont();
+    font.setPointSize(8);
+    setFont(font);
+
+    QWidget *wMenu = new QWidget(this);
+    QWidget *wCouleurs = new QWidget(this);
+    QWidget *w3D = new QWidget(this);
+    QWidget *w2D = new QWidget(this);
+    QVBoxLayout *VBLMenu = new QVBoxLayout(wMenu);
+    QVBoxLayout *VBLCouleurs = new QVBoxLayout(wCouleurs);
+    QVBoxLayout *VBL3D = new QVBoxLayout(w3D);
+    QVBoxLayout *VBL2D = new QVBoxLayout(w2D);
+
+    // Menu principal
+    QToolBar *tbMain = new QToolBar(this);
+    tbMain->setVisible(true);
+    QAction * action;
+
+    action = new QAction(QIcon(":/resources/note_add.png"), "Nouveau projet", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::projetNouveau);
+
+    action = new QAction(QIcon(":/resources/file_open.png"), "Ouvrir projet", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::projetCharge);
+
+    action = new QAction(QIcon(":/resources/file_save.png"), "Sauver projet", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::projetSauve);
+
+    action = new QAction(QIcon(":/resources/file_export.png"), "Exporter en SVG", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::projetExporte);
+
+    action = new QAction(QIcon(":/resources/close.png"), "Quitter", this);
+    action->setEnabled(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &QApplication::quit);
+
+    tbMain->addSeparator();
+    action = new QAction("C", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::basculeCouleurs);
+
+    action = new QAction("3d", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::bascule3d);
+
+    action = new QAction("2d", this);
+    action->setCheckable(true);
+    action->setChecked(true);
+    tbMain->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::bascule2d);
+
+    tbMain->setOrientation(Qt::Vertical);
+    tbMain->setMaximumWidth(25);
+    VBLMenu->addWidget(tbMain);
+
+    // Menu Pieces/couleurs
+    QToolBar *tbCol = new QToolBar(this);
+
+    action = new QAction("+", this);
+    action->setToolTip("Ajouter Couleur/Pièce");
+    tbCol->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::couleurNouveau);
+
+    //tbCol->addAction(ui->actionCouleurMoins);
+    //connect(ui->actionCouleurMoins, &QAction::triggered, this, &MainWindow::couleurSupprime);
+
+    tbCol->setVisible(true);
+    VBLCouleurs->setMenuBar(tbCol);
+
+    tableCouleurs = new QTableWidget(1, 4, this);
+    tableCouleurs->setColumnWidth(0, 5);
+    tableCouleurs->setColumnWidth(1, 5);
+    tableCouleurs->setColumnWidth(2, 35);
+    tableCouleurs->setColumnWidth(3, 108);
+    // Première ligne : couleur white par défaut
+    tableCouleurs->setCellWidget(0, 0, creeColorLabel(Qt::white));
+    tableCouleurs->setCellWidget(0, 1, creeColorLabel(Qt::white));
+    tableCouleurs->setItem(0, 2, new QTableWidgetItem("0"));
+    tableCouleurs->setItem(0, 3, new QTableWidgetItem("Defaut"));
+    tableCouleurs->setRowHeight(0, 14);
+    connect(tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
+    tableCouleurs->clearSelection();
+    tableCouleurs->horizontalHeader()->hide();
+    tableNumerote();
+    tableCouleurs->setMaximumWidth(190);
+    tableCouleurs->setFrameStyle(QFrame::Panel);
+    tableCouleurs->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableCouleurs->setVisible(true);
+    VBLCouleurs->addWidget(tableCouleurs);
+
+// #ifdef Q_OS_WASM
+//     // Menu 3d
+//     QToolBar *tb3d = new QToolBar(this);
+
+//     cbDemo = new QComboBox();
+//     cbDemo->addItem("Choisir demo", QVariant(""));
+//     cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
+//     cbDemo->addItem("Chat 234", QVariant("chat234"));
+//     cbDemo->addItem("Chat 310", QVariant("chat310"));
+//     cbDemo->addItem("Cheval 430", QVariant("cheval430"));
+//     cbDemo->addItem("Cheval Buste 120", QVariant("buste_cheval120"));
+//     cbDemo->addItem("Chien 354", QVariant("chien354"));
+//     cbDemo->addItem("Eléphant Assis 206", QVariant("elephantAssis206"));
+//     cbDemo->addItem("Faucon Maltais 300", QVariant("fauconM300"));
+//     cbDemo->addItem("Girafe 464", QVariant("girafe464"));
+//     cbDemo->addItem("Gorille 500", QVariant("gorille500"));
+//     cbDemo->addItem("Lapin Assis 192", QVariant("lapinAssis192"));
+//     cbDemo->addItem("Lapin Boston 146", QVariant("bunny146"));
+//     cbDemo->addItem("Lion Tête 358", QVariant("teteLion358"));
+//     cbDemo->addItem("Main 200", QVariant("main200"));
+//     cbDemo->addItem("Moaï 156", QVariant("moai156"));
+//     cbDemo->addItem("Moaï 312", QVariant("moai312"));
+//     cbDemo->addItem("Moineau 150", QVariant("moineau150"));
+//     cbDemo->addItem("Oeuf 220", QVariant("oeuf220"));
+//     cbDemo->addItem("Panthère 500", QVariant("panthere500"));
+//     cbDemo->addItem("Tdy 236", QVariant("tdy236"));
+//     cbDemo->addItem("Taureau 278", QVariant("taureau278"));
+//     cbDemo->addItem("Seth Buste254", QVariant("seth254"));
+
+//     cbDemo->setToolTip("Demos");
+//     tb3d->addWidget(cbDemo);
+//     connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
+//     tb3d->setVisible(true);
+//     VBL3D->setMenuBar(tb3d);
+// #endif
+
+    // menu 2d
+    QToolBar *tb2d = new QToolBar(this);
+
+    leEchelle =  new QLineEdit();
+    leEchelle->setMaximumWidth(50);
+    // QDoubleValidator *val = new QDoubleValidator();
+    // val->setLocale(QLocale::C);
+    // val->setNotation(QDoubleValidator::StandardNotation);
+    // val->setRange(0.1f, 100.f);
+    // leEchelle->setValidator(val);
+    tb2d->addWidget(new QLabel("Echelle:"));
+    tb2d->addWidget(leEchelle);
+    connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
+
+    tb2d->addSeparator();
+
+    tb2d->addWidget(new QLabel("Lang.:"));
+    cbLanguettes = new QComboBox();
+    cbLanguettes->addItems({"Sans", "1/paire", "2/paire"});
+    cbLanguettes->setMaximumWidth(100);
+    tb2d->addWidget(cbLanguettes);
+    connect(cbLanguettes, &QComboBox::currentIndexChanged, this, &MainWindow::changeTypeLang);
+
+    tb2d->addSeparator();
+
+    action = new QAction("+", this);
+    action->setToolTip("Ajouter Page");
+    tb2d->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::pageAjoute);
+
+    action = new QAction("-", this);
+    action->setToolTip("Supprimer Page");
+    tb2d->addAction(action);
+    connect(action, &QAction::triggered, this, &MainWindow::pageSupprime);
+
+    tb2d->addSeparator();
+    tb2d->addWidget(new QLabel("Marges:"));
+    QComboBox *cbMarges = new QComboBox();
+    cbMarges->addItems({"Sans", "Cricut", "Brother", "Silhoutte"});
+    cbMarges->setMaximumWidth(150);
+    tb2d->addWidget(cbMarges);
+    connect(cbMarges, &QComboBox::currentIndexChanged, this, &MainWindow::changeMarge);
+
+    tb2d->setVisible(true);
+    VBL2D->setMenuBar(tb2d);
+
+    vue3d = new DepliageVue3d(this);
+    scene3d = new DepliageScene(this, false);
+    vue3d->setScene(scene3d);
+    vue3d->setVisible(true);
+    VBL3D->addWidget(vue3d);
+
+    vue2d = new DepliageVue2d(this);
+    scene2d = new DepliageScene(this);
+    vue2d->setScene(scene2d);
+    vue2d->setVisible(true);
+    VBL2D->addWidget(vue2d);
+
+    splitter = new QSplitter(Qt::Horizontal, this);
+
+    VBLMenu->setContentsMargins(1,1,1,1);
+    VBLMenu->setSizeConstraint(QLayout::SetMaximumSize);
+    splitter->addWidget(wMenu);
+
+    VBLCouleurs->setContentsMargins(1,1,1,1);
+    VBLCouleurs->setSizeConstraint(QLayout::SetMaximumSize);
+    tableCouleurs->setMaximumWidth(190);
+    splitter->addWidget(wCouleurs);
+
+    w3D->setContentsMargins(1,1,1,1);
+    vue3d->setContentsMargins(1,1,1,1);
+    splitter->addWidget(w3D);
+
+    w2D->setContentsMargins(1,1,1,1);
+    vue2d->setContentsMargins(1,1,1,1);
+    splitter->addWidget(w2D);
+
+    splitter->setSizes({50,190,500,500});
+    splitter->setMinimumSize(1024,600);
+    splitter->setHandleWidth(3);
+    splitter->setStyleSheet("QSplitter::handle{background: #00aaff;}");
+
+    setCentralWidget(splitter);
+}
+
 // DESTRUCTEUR
 MainWindow::~MainWindow () {
     // LIBERE LA MEMOIRE
@@ -121,6 +358,30 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     QMainWindow::keyPressEvent (event);
 }
 
+void MainWindow::basculeLanguette (int id1, int id2) {
+    Nums n = Nums(id1, id2);
+    Nums *nf = &(dep.nums[dep.nums.indexOf(n)]);
+
+    nf->tlang = (nf->tlang == L01) ? L10 : L01;
+    piecesMAJ();
+}
+
+void MainWindow::facetteHoverOn (int faceId) {
+    for (auto && f : dep.faces){
+        if (f.triangleItem->hoverOn){
+            f.triangleItem->hoverOn = false;
+            f.triangleItem->setVisible(false);
+        }
+    }
+    dep.faces[faceId].triangleItem->hoverOn = true;
+    dep.faces[faceId].triangleItem->setVisible(true);
+}
+
+void MainWindow::facetteHoverOff (int faceId) {
+    dep.faces[faceId].triangleItem->hoverOn = false;
+    dep.faces[faceId].triangleItem->setVisible(false);
+}
+
 void MainWindow::changeEchelle()
 {
     QString ch = leEchelle->text();
@@ -159,6 +420,9 @@ void MainWindow::changeMarge (int index) {
 }
 
 void MainWindow::changeTypeLang (int typeLang) {
+    if (chargementEnCours)
+        return;
+
     dep.typeLang = typeLang;
     for (auto && p : dep.pieces) {
         for (auto && l : p.lignes) {
@@ -180,30 +444,6 @@ void MainWindow::changeTypeLang (int typeLang) {
         }
     }
     piecesMAJ();
-}
-
-void MainWindow::basculeLanguette (int id1, int id2) {
-    Nums n = Nums(id1, id2);
-    Nums *nf = &(dep.nums[dep.nums.indexOf(n)]);
-
-    nf->tlang = (nf->tlang == L01) ? L10 : L01;
-    piecesMAJ();
-}
-
-void MainWindow::facetteHoverOn (int faceId) {
-    for (auto && f : dep.faces){
-        if (f.triangleItem->hoverOn){
-            f.triangleItem->hoverOn = false;
-            f.triangleItem->setVisible(false);
-        }
-    }
-    dep.faces[faceId].triangleItem->hoverOn = true;
-    dep.faces[faceId].triangleItem->setVisible(true);
-}
-
-void MainWindow::facetteHoverOff (int faceId) {
-    dep.faces[faceId].triangleItem->hoverOn = false;
-    dep.faces[faceId].triangleItem->setVisible(false);
 }
 
 void MainWindow::changeCouleur (int couleur) {
@@ -424,6 +664,8 @@ void MainWindow::pieceCreeLignes (Piece *piece) {
     QTransform transform;
     transform.translate(delta.x(), delta.y());
     Nums n1, nF;
+    qsizetype ni;
+
     for (auto && n : piece->elements) {
         Facette *face = &(dep.faces[n]);
         QPolygonF P = transform.map(face->triangleItem->polygon());
@@ -451,11 +693,16 @@ void MainWindow::pieceCreeLignes (Piece *piece) {
                     ligne.bLang = false;
                     break;
                 case 1 :
-                    nF = dep.nums[dep.nums.indexOf(Nums(ligne.id1, ligne.id2))];
-                    if (nF.tlang == L01)
-                        ligne.bLang = (ligne.id1 == nF.id2) && (ligne.id2 == nF.id1);
-                    else if (nF.tlang == L10)
-                        ligne.bLang = (ligne.id1 == nF.id1) && (ligne.id2 == nF.id2);
+                    ni = dep.nums.indexOf(Nums(ligne.id1, ligne.id2));
+                    if (ni > -1) {
+                        nF = dep.nums[ni];
+                        if (nF.tlang == L01)
+                            ligne.bLang = (ligne.id1 == nF.id2) && (ligne.id2 == nF.id1);
+                        else if (nF.tlang == L10)
+                            ligne.bLang = (ligne.id1 == nF.id1) && (ligne.id2 == nF.id2);
+                    } else {
+                        ligne.bLang = false;
+                    }
                     break;
                 case 2 :
                     ligne.bLang = true;
@@ -1051,6 +1298,7 @@ void MainWindow::projetCharge()
     // Nouveau projet : choisit un fichier .obj.dep et le charge
     auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
         if (!fileName.isEmpty()) {
+            chargementEnCours = true;
             // Use fileName and fileContent
             dep.nums.clear();
             dep.pieces.clear();
@@ -1126,10 +1374,14 @@ void MainWindow::projetCharge()
                 }
 
                 else if (parts[0] == "dl") { // type Languettes
+                    dep.typeLang = parts[1].toInt();
+                    cbLanguettes->setCurrentIndex(dep.typeLang);
                 }
 
                 else if (parts[0] == "dn") { // num + lang
-
+                    Nums n = Nums(parts[1].toInt(), parts[2].toInt(), parts[3].toInt());
+                    n.tlang = static_cast<TLang>(parts[4].toInt());
+                    dep.nums.append(n);
                 }
                 else if (parts[0] == "dd") { // dimensions page
                     dep.dimPage = QPoint(parts[1].toInt(), parts[2].toInt());
@@ -1141,6 +1393,7 @@ void MainWindow::projetCharge()
             piecesMAJ();
             scene2d->update();
             ajuste2D();
+            chargementEnCours = false;
             qDebug() << "FIN CHARGEMENT";
         }
     };
@@ -1354,54 +1607,6 @@ void MainWindow::couleurNouveau () {
     // dialog->open();
 }
 
-void MainWindow::demo() {
-    if (dep.ModeleCharge) {
-        QMessageBox *msgBox = new QMessageBox(this);
-        msgBox->setAttribute(Qt::WA_DeleteOnClose);
-        msgBox->setIcon(QMessageBox::Question);
-        msgBox->setText("Charger ce modèle ?");
-        msgBox->setInformativeText("Attention, cela écrasera votre travail");
-        msgBox->setStandardButtons(QMessageBox::Open | QMessageBox::Cancel);
-        msgBox->setDefaultButton(QMessageBox::Cancel);
-        connect(msgBox, &QMessageBox::finished, this, [this](){
-            dep.nums.clear();
-            dep.pieces.clear();
-            dep.faces.clear();
-            dep = Depliage();
-            dep.ModeleOK = true;
-            dep.echelle = 1;
-            dep.fPas = 0.1;
-            scene2d->nbPages = 1;
-            leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-            setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
-            demoMode = true;
-            dep.chargeFichierOBJ(m_demoFichier->downloadedData());
-            chargeFichier();
-            dep.ModeleCharge = true;
-        });
-        msgBox->show();
-    }
-    else
-        doDemo();
-}
-
-void MainWindow::doDemo() {
-    dep.nums.clear();
-    dep.pieces.clear();
-    dep.faces.clear();
-    dep = Depliage();
-    dep.ModeleOK = true;
-    dep.echelle = 1;
-    dep.fPas = 0.1;
-    scene2d->nbPages = 1;
-    leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-    setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
-    demoMode = true;
-    dep.chargeFichierOBJ(m_demoFichier->downloadedData());
-    chargeFichier();
-    dep.ModeleCharge = true;
-}
-
 void MainWindow::chargeFichier() {
     Piece p0;
     p0.id = 0;
@@ -1447,250 +1652,61 @@ void MainWindow::chargeFichier() {
     ajuste2D();
 }
 
-void MainWindow::lanceDemo(int index) {
-    if (index == 0 )
-        return;
+// void MainWindow::demo() {
+//     if (dep.ModeleCharge) {
+//         QMessageBox *msgBox = new QMessageBox(this);
+//         msgBox->setAttribute(Qt::WA_DeleteOnClose);
+//         msgBox->setIcon(QMessageBox::Question);
+//         msgBox->setText("Charger ce modèle ?");
+//         msgBox->setInformativeText("Attention, cela écrasera votre travail");
+//         msgBox->setStandardButtons(QMessageBox::Open | QMessageBox::Cancel);
+//         msgBox->setDefaultButton(QMessageBox::Cancel);
+//         connect(msgBox, &QMessageBox::finished, this, [this](){
+//             dep.nums.clear();
+//             dep.pieces.clear();
+//             dep.faces.clear();
+//             dep = Depliage();
+//             dep.ModeleOK = true;
+//             dep.echelle = 1;
+//             dep.fPas = 0.1;
+//             scene2d->nbPages = 1;
+//             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+//             setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
+//             demoMode = true;
+//             dep.chargeFichierOBJ(m_demoFichier->downloadedData());
+//             chargeFichier();
+//             dep.ModeleCharge = true;
+//         });
+//         msgBox->show();
+//     }
+//     else
+//         doDemo();
+// }
 
-    QString chUrl = cbDemo->itemData(index).toString();
-    //QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
-    QUrl demoUrl(QString("modeles/%1.obj").arg(chUrl));
-    m_demoFichier = new FileDownloader(demoUrl, this);
-    connect(m_demoFichier, &FileDownloader::downloaded, this, &MainWindow::demo);
-}
+// void MainWindow::doDemo() {
+//     dep.nums.clear();
+//     dep.pieces.clear();
+//     dep.faces.clear();
+//     dep = Depliage();
+//     dep.ModeleOK = true;
+//     dep.echelle = 1;
+//     dep.fPas = 0.1;
+//     scene2d->nbPages = 1;
+//     leEchelle->setText(QString::number(dep.echelle, 'g', 2));
+//     setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
+//     demoMode = true;
+//     dep.chargeFichierOBJ(m_demoFichier->downloadedData());
+//     chargeFichier();
+//     dep.ModeleCharge = true;
+// }
 
-// CONSTRUCTEUR
-MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
-    // DEFINIT L'INTERFACE
+// void MainWindow::lanceDemo(int index) {
+//     if (index == 0 )
+//         return;
 
-    QString tmpCol = "white, Brown, Cyan, Crimson, Chartreuse, Green, BurlyWood, Yellow, Peru, CadetBlue, Chocolate, Fuchsia, Gold, Coral, Aquamarine, Tomato, BlueViolet, CornflowerBlue, Maroon, MediumAquaMarine, MediumBlue, MediumOrchid, MediumPurple, MediumSeaGreen, MediumSlateBlue, MediumSpringGreen, Lavender, MediumTurquoise, MediumVioletRed, MidnightBlue, MintCream, MistyRose, DarkCyan, DarkGoldenRod, DarkGray, DarkKhaki, DarkMagenta, DarkOliveGreen, DarkOrange, DarkOrchid, DarkSalmon, DarkSeaGreen, DarkTurquoise, DarkViolet, DeepPink, DeepSkyBlue, DimGray, DodgerBlue, Turquoise, Violet, FireBrick, ForestGreen, GoldenRod, IndianRed, Indigo, GreenYellow, HoneyDew, HotPink, Khaki, YellowGreen, LavenderBlush, LawnGreen, LemonChiffon, LightBlue, LightCoral, LightCyan, LightGoldenRodYellow, LightGray, Olive, LightGreen, LightPink, LightSalmon, LightSeaGreen, LightSkyBlue, LightSlateGray, LightSteelBlue, LightYellow, Lime, LimeGreen, Linen, Moccasin, NavajoWhite, Navy, OldLace, Olive, Yellow, OliveDrab, Orange, OrangeRed, Orchid, PaleGoldenRod, Wheat, PaleTurquoise, PaleVioletRed, PapayaWhip, PeachPuff, WhiteSmoke, Pink, Plum, PowderBlue, Purple, RosyBrown, RoyalBlue, SaddleBrown, Salmon, SandyBrown, SeaGreen, SeaShell, Sienna, Silver, SkyBlue, SlateBlue, SlateGray, Snow, SpringGreen, SteelBlue, Tan, Teal, Thistle";
-    gCOL.append(tmpCol.split(','));
-    tmpCol.clear();
-
-    statusbar = statusBar();
-    statusbar->showMessage(nomApp);
-    setWindowTitle(nomApp);
-    setWindowFlag(Qt::Window);
-
-    dep.ModeleOK = false;
-
-    QFont font = QFont();
-    font.setPointSize(8);
-    setFont(font);
-
-    QWidget *wMenu = new QWidget(this);
-    QWidget *wCouleurs = new QWidget(this);
-    QWidget *w3D = new QWidget(this);
-    QWidget *w2D = new QWidget(this);
-    QVBoxLayout *VBLMenu = new QVBoxLayout(wMenu);
-    QVBoxLayout *VBLCouleurs = new QVBoxLayout(wCouleurs);
-    QVBoxLayout *VBL3D = new QVBoxLayout(w3D);
-    QVBoxLayout *VBL2D = new QVBoxLayout(w2D);
-
-    // Menu principal
-    QToolBar *tbMain = new QToolBar(this);
-    tbMain->setVisible(true);
-    QAction * action;
-
-    action = new QAction(QIcon(":/resources/note_add.png"), "Nouveau projet", this);
-    action->setEnabled(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::projetNouveau);
-
-    action = new QAction(QIcon(":/resources/file_open.png"), "Ouvrir projet", this);
-    action->setEnabled(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::projetCharge);
-
-    action = new QAction(QIcon(":/resources/file_save.png"), "Sauver projet", this);
-    action->setEnabled(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::projetSauve);
-
-    action = new QAction(QIcon(":/resources/file_export.png"), "Exporter en SVG", this);
-    action->setEnabled(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::projetExporte);
-
-    action = new QAction(QIcon(":/resources/close.png"), "Quitter", this);
-    action->setEnabled(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &QApplication::quit);
-
-    tbMain->addSeparator();
-    action = new QAction("C", this);
-    action->setCheckable(true);
-    action->setChecked(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::basculeCouleurs);
-
-    action = new QAction("3d", this);
-    action->setCheckable(true);
-    action->setChecked(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::bascule3d);
-
-    action = new QAction("2d", this);
-    action->setCheckable(true);
-    action->setChecked(true);
-    tbMain->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::bascule2d);
-
-    tbMain->setOrientation(Qt::Vertical);
-    tbMain->setMaximumWidth(25);
-    VBLMenu->addWidget(tbMain);
-
-    // Menu Pieces/couleurs
-    QToolBar *tbCol = new QToolBar(this);
-
-    action = new QAction("+", this);
-    action->setToolTip("Ajouter Couleur/Pièce");
-    tbCol->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::couleurNouveau);
-
-    //tbCol->addAction(ui->actionCouleurMoins);
-    //connect(ui->actionCouleurMoins, &QAction::triggered, this, &MainWindow::couleurSupprime);
-
-    tbCol->setVisible(true);
-    VBLCouleurs->setMenuBar(tbCol);
-
-    tableCouleurs = new QTableWidget(1, 4, this);
-    tableCouleurs->setColumnWidth(0, 5);
-    tableCouleurs->setColumnWidth(1, 5);
-    tableCouleurs->setColumnWidth(2, 35);
-    tableCouleurs->setColumnWidth(3, 108);
-    // Première ligne : couleur white par défaut
-    tableCouleurs->setCellWidget(0, 0, creeColorLabel(Qt::white));
-    tableCouleurs->setCellWidget(0, 1, creeColorLabel(Qt::white));
-    tableCouleurs->setItem(0, 2, new QTableWidgetItem("0"));
-    tableCouleurs->setItem(0, 3, new QTableWidgetItem("Defaut"));
-    tableCouleurs->setRowHeight(0, 14);
-    connect(tableCouleurs, &QTableWidget::cellPressed, this, &MainWindow::couleurClic);
-    tableCouleurs->clearSelection();
-    tableCouleurs->horizontalHeader()->hide();
-    tableNumerote();
-    tableCouleurs->setMaximumWidth(190);
-    tableCouleurs->setFrameStyle(QFrame::Panel);
-    tableCouleurs->setSelectionBehavior(QAbstractItemView::SelectRows);
-    tableCouleurs->setVisible(true);
-    VBLCouleurs->addWidget(tableCouleurs);
-
-#ifdef Q_OS_WASM
-    // Menu 3d
-    QToolBar *tb3d = new QToolBar(this);
-
-    cbDemo = new QComboBox();
-    cbDemo->addItem("Choisir demo", QVariant(""));
-    cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
-    cbDemo->addItem("Chat 234", QVariant("chat234"));
-    cbDemo->addItem("Chat 310", QVariant("chat310"));
-    cbDemo->addItem("Cheval 430", QVariant("cheval430"));
-    cbDemo->addItem("Cheval Buste 120", QVariant("buste_cheval120"));
-    cbDemo->addItem("Chien 354", QVariant("chien354"));
-    cbDemo->addItem("Eléphant Assis 206", QVariant("elephantAssis206"));
-    cbDemo->addItem("Faucon Maltais 300", QVariant("fauconM300"));
-    cbDemo->addItem("Girafe 464", QVariant("girafe464"));
-    cbDemo->addItem("Gorille 500", QVariant("gorille500"));
-    cbDemo->addItem("Lapin Assis 192", QVariant("lapinAssis192"));
-    cbDemo->addItem("Lapin Boston 146", QVariant("bunny146"));
-    cbDemo->addItem("Lion Tête 358", QVariant("teteLion358"));
-    cbDemo->addItem("Main 200", QVariant("main200"));
-    cbDemo->addItem("Moaï 156", QVariant("moai156"));
-    cbDemo->addItem("Moaï 312", QVariant("moai312"));
-    cbDemo->addItem("Moineau 150", QVariant("moineau150"));
-    cbDemo->addItem("Oeuf 220", QVariant("oeuf220"));
-    cbDemo->addItem("Panthère 500", QVariant("panthere500"));
-    cbDemo->addItem("Tdy 236", QVariant("tdy236"));
-    cbDemo->addItem("Taureau 278", QVariant("taureau278"));
-    cbDemo->addItem("Seth Buste254", QVariant("seth254"));
-
-    cbDemo->setToolTip("Demos");
-    tb3d->addWidget(cbDemo);
-    connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
-    tb3d->setVisible(true);
-    VBL3D->setMenuBar(tb3d);
-#endif
-
-    // menu 2d
-    QToolBar *tb2d = new QToolBar(this);
-
-    leEchelle =  new QLineEdit();
-    leEchelle->setMaximumWidth(50);
-    // QDoubleValidator *val = new QDoubleValidator();
-    // val->setLocale(QLocale::C);
-    // val->setNotation(QDoubleValidator::StandardNotation);
-    // val->setRange(0.1f, 100.f);
-    // leEchelle->setValidator(val);
-    tb2d->addWidget(new QLabel("Echelle:"));
-    tb2d->addWidget(leEchelle);
-    connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
-
-    tb2d->addSeparator();
-
-    tb2d->addWidget(new QLabel("Lang.:"));
-    cbLanguettes = new QComboBox();
-    cbLanguettes->addItems({"Sans", "1/paire", "2/paire"});
-    cbLanguettes->setMaximumWidth(100);
-    tb2d->addWidget(cbLanguettes);
-    connect(cbLanguettes, &QComboBox::currentIndexChanged, this, &MainWindow::changeTypeLang);
-
-    tb2d->addSeparator();
-
-    action = new QAction("+", this);
-    action->setToolTip("Ajouter Page");
-    tb2d->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::pageAjoute);
-
-    action = new QAction("-", this);
-    action->setToolTip("Supprimer Page");
-    tb2d->addAction(action);
-    connect(action, &QAction::triggered, this, &MainWindow::pageSupprime);
-
-    tb2d->addSeparator();
-    tb2d->addWidget(new QLabel("Marges:"));
-    QComboBox *cbMarges = new QComboBox();
-    cbMarges->addItems({"Sans", "Cricut", "Brother", "Silhoutte"});
-    cbMarges->setMaximumWidth(150);
-    tb2d->addWidget(cbMarges);
-    connect(cbMarges, &QComboBox::currentIndexChanged, this, &MainWindow::changeMarge);
-
-    tb2d->setVisible(true);
-    VBL2D->setMenuBar(tb2d);
-
-    vue3d = new DepliageVue3d(this);
-    scene3d = new DepliageScene(this, false);
-    vue3d->setScene(scene3d);
-    vue3d->setVisible(true);
-    VBL3D->addWidget(vue3d);
-
-    vue2d = new DepliageVue2d(this);
-    scene2d = new DepliageScene(this);
-    vue2d->setScene(scene2d);
-    vue2d->setVisible(true);
-    VBL2D->addWidget(vue2d);
-
-    splitter = new QSplitter(Qt::Horizontal, this);
-
-    VBLMenu->setContentsMargins(1,1,1,1);
-    VBLMenu->setSizeConstraint(QLayout::SetMaximumSize);
-    splitter->addWidget(wMenu);
-
-    VBLCouleurs->setContentsMargins(1,1,1,1);
-    VBLCouleurs->setSizeConstraint(QLayout::SetMaximumSize);
-    tableCouleurs->setMaximumWidth(190);
-    splitter->addWidget(wCouleurs);
-
-    w3D->setContentsMargins(1,1,1,1);
-    vue3d->setContentsMargins(1,1,1,1);
-    splitter->addWidget(w3D);
-
-    w2D->setContentsMargins(1,1,1,1);
-    vue2d->setContentsMargins(1,1,1,1);
-    splitter->addWidget(w2D);
-
-    splitter->setSizes({50,190,500,500});
-    splitter->setMinimumSize(1024,600);
-    splitter->setHandleWidth(3);
-    splitter->setStyleSheet("QSplitter::handle{background: #00aaff;}");
-
-    setCentralWidget(splitter);
-}
+//     QString chUrl = cbDemo->itemData(index).toString();
+//     //QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
+//     QUrl demoUrl(QString("modeles/%1.obj").arg(chUrl));
+//     m_demoFichier = new FileDownloader(demoUrl, this);
+//     connect(m_demoFichier, &FileDownloader::downloaded, this, &MainWindow::demo);
+// }
