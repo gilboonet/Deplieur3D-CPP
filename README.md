@@ -14,8 +14,9 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
 - (l'ajout d'une face n'est possible que si elle ne chevauche pas une autre face dans la pièce, hors languettes)
 - clic droit sur une face pour sélectionner sa couleur
 - Zoomer sur le gabarit
-- visualiser la face courante du gabarit depuis celle pointée par la souris sur la vue 3D
+- visualiser la face courante du gabarit pointée par la souris sur l'autre vue
 - Déplacer/tourner les pièces du gabarit
+- clic sur une arête intérieure d'une pièce pour la scinder en deux pièces
 - Ajouter une couleur (= 1 pièce)
 - Renommer une couleur
 - Centrer le modèle 3d dans la vue
