@@ -13,10 +13,8 @@
 #include <QVBoxLayout>
 #include <QToolBar>
 #include <QToolButton>
-//#include <QMenu>
 #include <QHeaderView>
 #include <QTableWidgetItem>
-//#include <QColorDialog>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QLocale>
@@ -184,52 +182,11 @@ MainWindow::MainWindow (QWidget *parent) : QMainWindow(parent) {
     tableCouleurs->setVisible(true);
     VBLCouleurs->addWidget(tableCouleurs);
 
-// #ifdef Q_OS_WASM
-//     // Menu 3d
-//     QToolBar *tb3d = new QToolBar(this);
-
-//     cbDemo = new QComboBox();
-//     cbDemo->addItem("Choisir demo", QVariant(""));
-//     cbDemo->addItem("Anubis Tête 102", QVariant("teteAnubisH20_2C"));
-//     cbDemo->addItem("Chat 234", QVariant("chat234"));
-//     cbDemo->addItem("Chat 310", QVariant("chat310"));
-//     cbDemo->addItem("Cheval 430", QVariant("cheval430"));
-//     cbDemo->addItem("Cheval Buste 120", QVariant("buste_cheval120"));
-//     cbDemo->addItem("Chien 354", QVariant("chien354"));
-//     cbDemo->addItem("Eléphant Assis 206", QVariant("elephantAssis206"));
-//     cbDemo->addItem("Faucon Maltais 300", QVariant("fauconM300"));
-//     cbDemo->addItem("Girafe 464", QVariant("girafe464"));
-//     cbDemo->addItem("Gorille 500", QVariant("gorille500"));
-//     cbDemo->addItem("Lapin Assis 192", QVariant("lapinAssis192"));
-//     cbDemo->addItem("Lapin Boston 146", QVariant("bunny146"));
-//     cbDemo->addItem("Lion Tête 358", QVariant("teteLion358"));
-//     cbDemo->addItem("Main 200", QVariant("main200"));
-//     cbDemo->addItem("Moaï 156", QVariant("moai156"));
-//     cbDemo->addItem("Moaï 312", QVariant("moai312"));
-//     cbDemo->addItem("Moineau 150", QVariant("moineau150"));
-//     cbDemo->addItem("Oeuf 220", QVariant("oeuf220"));
-//     cbDemo->addItem("Panthère 500", QVariant("panthere500"));
-//     cbDemo->addItem("Tdy 236", QVariant("tdy236"));
-//     cbDemo->addItem("Taureau 278", QVariant("taureau278"));
-//     cbDemo->addItem("Seth Buste254", QVariant("seth254"));
-
-//     cbDemo->setToolTip("Demos");
-//     tb3d->addWidget(cbDemo);
-//     connect(cbDemo, &QComboBox::currentIndexChanged, this, &MainWindow::lanceDemo);
-//     tb3d->setVisible(true);
-//     VBL3D->setMenuBar(tb3d);
-// #endif
-
     // menu 2d
     QToolBar *tb2d = new QToolBar(this);
 
     leEchelle =  new QLineEdit();
     leEchelle->setMaximumWidth(50);
-    // QDoubleValidator *val = new QDoubleValidator();
-    // val->setLocale(QLocale::C);
-    // val->setNotation(QDoubleValidator::StandardNotation);
-    // val->setRange(0.1f, 100.f);
-    // leEchelle->setValidator(val);
     tb2d->addWidget(new QLabel("Echelle:"));
     tb2d->addWidget(leEchelle);
     connect(leEchelle, &QLineEdit::returnPressed, this, &MainWindow::changeEchelle);
@@ -1651,62 +1608,3 @@ void MainWindow::chargeFichier() {
     ajuste3D();
     ajuste2D();
 }
-
-// void MainWindow::demo() {
-//     if (dep.ModeleCharge) {
-//         QMessageBox *msgBox = new QMessageBox(this);
-//         msgBox->setAttribute(Qt::WA_DeleteOnClose);
-//         msgBox->setIcon(QMessageBox::Question);
-//         msgBox->setText("Charger ce modèle ?");
-//         msgBox->setInformativeText("Attention, cela écrasera votre travail");
-//         msgBox->setStandardButtons(QMessageBox::Open | QMessageBox::Cancel);
-//         msgBox->setDefaultButton(QMessageBox::Cancel);
-//         connect(msgBox, &QMessageBox::finished, this, [this](){
-//             dep.nums.clear();
-//             dep.pieces.clear();
-//             dep.faces.clear();
-//             dep = Depliage();
-//             dep.ModeleOK = true;
-//             dep.echelle = 1;
-//             dep.fPas = 0.1;
-//             scene2d->nbPages = 1;
-//             leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-//             setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
-//             demoMode = true;
-//             dep.chargeFichierOBJ(m_demoFichier->downloadedData());
-//             chargeFichier();
-//             dep.ModeleCharge = true;
-//         });
-//         msgBox->show();
-//     }
-//     else
-//         doDemo();
-// }
-
-// void MainWindow::doDemo() {
-//     dep.nums.clear();
-//     dep.pieces.clear();
-//     dep.faces.clear();
-//     dep = Depliage();
-//     dep.ModeleOK = true;
-//     dep.echelle = 1;
-//     dep.fPas = 0.1;
-//     scene2d->nbPages = 1;
-//     leEchelle->setText(QString::number(dep.echelle, 'g', 2));
-//     setWindowTitle(QString("%1 [Modele Demo]").arg(nomApp));
-//     demoMode = true;
-//     dep.chargeFichierOBJ(m_demoFichier->downloadedData());
-//     chargeFichier();
-//     dep.ModeleCharge = true;
-// }
-
-// void MainWindow::lanceDemo(int index) {
-//     if (index == 0 )
-//         return;
-
-//     QString chUrl = cbDemo->itemData(index).toString();
-//     //QUrl demoUrl(QString("https://github.com/gilboonet/gilboonet.github.io/raw/refs/heads/master/modeles/%1.obj").arg(chUrl));
-//     QUrl demoUrl(QString("modeles/%1.obj").arg(chUrl));
-//     m_demoFichier = new FileDownloader(demoUrl, this);
-//     connect(m_demoFichier, &FileDownloader::downloaded, this, &MainWindow::demo);
-// }

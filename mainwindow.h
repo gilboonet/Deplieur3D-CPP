@@ -34,7 +34,6 @@ public:
     Depliage dep;
     DepliageScene *scene3d, *scene2d;
     FileDownloader *m_demoFichier;
-    //bool demoMode = false;
 
 private:
     QLineEdit *leEchelle = nullptr;
@@ -47,7 +46,7 @@ private:
     QStatusBar *statusbar = nullptr;
     bool chargementEnCours = false;
 
-    const QString nomApp = "Deplieur 3D v0.2 (28-02-25)";
+    const QString nomApp = "Deplieur 3D v0.2 (01-03-25)";
 
     QPainterPath construitChemin(QList<QLineF>);
     void triangle3dSetHover(bool);
@@ -55,10 +54,6 @@ private:
 private slots:
     void resizeEvent (QResizeEvent*) override;
     void keyPressEvent(QKeyEvent *event) override;
-
-    //void demo ();
-    //void doDemo ();
-    //void lanceDemo (int);
 
     void projetNouveau ();
     void projetSauve ();

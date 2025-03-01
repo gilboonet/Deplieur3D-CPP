@@ -14,5 +14,6 @@
         <file>resources/note_add.png</file>
         <file>resources/file_export.png</file>
         <file>resources/file_save.png</file>
+        <file>resources/favicon.png</file>
     </qresource>
 </RCC>
