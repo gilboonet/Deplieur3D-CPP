@@ -7,6 +7,10 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
 - v0.1 : version expérimentale, avec modèles de démo intégrés dans la version Navigateur
 - v0.2 : version complète, sans démo
 
+# (05-03-25) Publication de l'installeur pour le Déplieur 3d Windows v0.2
+- lien [ici](https://github.com/gilboonet/Deplieur3D-CPP/releases/tag/v0.2-windows)
+
+
 # (28-02-25) passage en v0.2
 ## FAIT
 - Crer un nouveau projet de dépliage (ouvrir un fichier 3D, format .obj)
@@ -39,5 +43,5 @@ C'est un projet QT C++, construit (CMAKE) avec QT Creator (15.0.1)
 - Changer les paramètres de (mise en) page du projet(format, orientation, marges)
 
 ## Si vous voulez tester la version Wasm (tous navigateurs)
-https://gilboonet.github.io/deplieur2/Deplieur.html
-(fichiers .obj ici : https://github.com/gilboonet/gilboonet.github.io/tree/master/modeles)
+- [lien](https://gilboonet.github.io/deplieur2/Deplieur.html)
+- [fichiers .obj](https://github.com/gilboonet/gilboonet.github.io/tree/master/modeles)
